@@ -1,5 +1,6 @@
+mod gameboy;
 use clap::{App, Arg};
-use std::fs::File;
+use gameboy::{Gameboy, GameboyCartridge};
 
 fn main() {
     let matches = App::new("boyo")
@@ -10,13 +11,18 @@ fn main() {
             .required(true)
             .index(1))
         .get_matches();
-    
-    let rom = matches.value_of("rom").unwrap();
-    let file = match File::open(rom) {
-        Ok(f) => f,
+    // TODO: infer system type based on ROM data?
+    let path = matches.value_of("rom").unwrap();
+    let cartridge = match GameboyCartridge::from(path) {
+        Ok(d) => d,
         Err(e) => {
             eprintln!("Error: {}", e);
             std::process::exit(0);
         }
     };
+    let gameboy = Gameboy::new(cartridge);
+    #[allow(while_true)]
+    while true {
+        gameboy.tick();
+    }
 }
