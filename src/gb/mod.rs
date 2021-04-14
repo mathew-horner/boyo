@@ -29,6 +29,7 @@ impl Gameboy {
         // TODO-PERF: check if as_ref() has a large amount of overhead?
         let cartridge = self.cartridge.as_ref().unwrap();
         let opcode = cartridge.read_bytes(self.cpu.pc, 1) as u8;
+        let base_cycles = Opcode::base_cycles(opcode);
         let size = Opcode::size(opcode) as u16;
         let opcode = match Opcode::parse(opcode) {
             Some(op) => op,
@@ -40,7 +41,7 @@ impl Gameboy {
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
         let instruction = cartridge.read_bytes(self.cpu.pc, size);
         let mut skip_pc = false;
-        let cycles = match opcode {
+        match opcode {
             Opcode::NOP => 4,
             Opcode::RLCA => {
                 // TODO-Q: Is this the right thing to do? How do we set Z?
@@ -60,6 +61,6 @@ impl Gameboy {
         if !skip_pc {
             self.cpu.pc += size;
         }
-        cycles
+        base_cycles
     }
 }
