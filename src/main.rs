@@ -14,10 +14,8 @@ fn main() {
 
     let path = matches.value_of("rom").unwrap();
     let mut gameboy = Gameboy::new(Cartridge::from(path).unwrap());
-    // #[allow(while_true)]
-    // while true {
-    for _ in 0..32 {
+    #[allow(while_true)]
+    while true {
         gameboy.tick();
     }
-    //}
 }

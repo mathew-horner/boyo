@@ -1,6 +1,16 @@
+mod cartridge;
+mod cpu;
+mod opcode;
+pub use cartridge::Cartridge;
+use cpu::LR35902;
+use opcode::Opcode;
+
+const MEMORY_SIZE: usize = 8192;
+
 pub struct Gameboy {
     pub cartridge: Option<Cartridge>,
     pub cpu: LR35902,
+    pub memory: [u8; MEMORY_SIZE],
 }
 
 impl Gameboy {
@@ -8,6 +18,7 @@ impl Gameboy {
         Self {
             cartridge: Some(cartridge),
             cpu: LR35902 { pc: 0x0100, sp: 0xFFFE, a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, h: 0, l: 0 },
+            memory: [0; MEMORY_SIZE],
         }
     }
 
@@ -15,9 +26,10 @@ impl Gameboy {
         if self.cartridge.is_none() {
             return 0;
         }
-        // PERF: check if as_ref() has a large amount of overhead?
+        // TODO-PERF: check if as_ref() has a large amount of overhead?
         let cartridge = self.cartridge.as_ref().unwrap();
-        let opcode = cartridge.read_bytes(self.cpu.pc, 1);
+        let opcode = cartridge.read_bytes(self.cpu.pc, 1) as u8;
+        let size = Opcode::size(opcode) as u16;
         let opcode = match Opcode::parse(opcode) {
             Some(op) => op,
             None => {
@@ -25,74 +37,29 @@ impl Gameboy {
                 std::process::exit(0);
             }
         };
-        // PERF: avoid re-reading memory here, but it's the simplest solution atm.
-        let instruction = cartridge.read_bytes(self.cpu.pc, opcode.size());
-        match opcode {
-            Opcode::NOP => {
-                self.cpu.pc += 1;
+        // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
+        let instruction = cartridge.read_bytes(self.cpu.pc, size);
+        let mut skip_pc = false;
+        let cycles = match opcode {
+            Opcode::NOP => 4,
+            Opcode::RLCA => {
+                // TODO-Q: Is this the right thing to do? How do we set Z?
+                self.cpu.set_flags(1, 0, 0, self.cpu.z());
                 4
-            }
-            Opcode::JPA16 => {
+            },
+            Opcode::LD_HL_B => {
+                self.memory[self.cpu.hl() as usize] = self.cpu.b;
+                8
+            },
+            Opcode::JP_a16 => {
                 self.cpu.pc = (instruction & 0xFFFF) as u16;
+                skip_pc = true;
                 16
             },
+        };
+        if !skip_pc {
+            self.cpu.pc += size;
         }
-    }
-}
-
-pub struct LR35902 {
-    pub pc: u16,
-    pub sp: u16,
-    pub a: u8,
-    pub b: u8,
-    pub c: u8,
-    pub d: u8,
-    pub e: u8,
-    pub f: u8,
-    pub h: u8,
-    pub l: u8,
-}
-
-pub enum Opcode {
-    NOP,
-    JPA16,
-}
-
-impl Opcode {
-    fn parse(opcode: u32) -> Option<Self> {
-        if opcode == 0 {
-            return Some(Opcode::NOP);
-        }
-        if opcode == 0xC3 {
-            return Some(Opcode::JPA16);
-        }
-        None
-    }
-
-    // TODO: Use global HashMap.
-    fn size(&self) -> u16 {
-        match self {
-            Opcode::NOP => 1,
-            Opcode::JPA16 => 3,
-        }
-    }
-}
-
-pub struct Cartridge {
-    pub rom: Vec<u8>,
-}
-
-impl Cartridge {
-    pub fn from(path: &str) -> Result<Self, std::io::Error> {
-        Ok(Self { rom: std::fs::read(path)? })
-    }
-
-    pub fn read_bytes(&self, address: u16, count: u16) -> u32 {
-        let mut data: u32 = 0;
-        for i in 0..count {
-            data <<= 8;
-            data |= (self.rom[(address + i) as usize]) as u32;
-        }
-        data
+        cycles
     }
 }
