@@ -1,0 +1,10 @@
+Planned Features
+================
+- Fully implemented GB, GBC, and GBA.
+- Cycle accuracy.
+- Comprehensive debugging suite with all the standard debug controls (step, continue, breakpoints, etc).
+- Time travel debugger.
+- Configurable controls.
+- Ability to run cheats.
+- Save states.
+- more!

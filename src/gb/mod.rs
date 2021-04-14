@@ -1,3 +1,5 @@
+use super::common::Emulator;
+
 pub struct Gameboy {
     pub cartridge: Option<GameboyCartridge>,
     pub cpu: LR35902,
@@ -10,9 +12,12 @@ impl Gameboy {
             cpu: LR35902 { pc: 0x0100 },
         }
     }
+}
 
-    pub fn tick(&self) {
-        println!("{}", self.cartridge.as_ref().unwrap().rom[self.cpu.pc as usize]);
+impl Emulator for Gameboy {
+    fn start(&self) {
+        #[allow(while_true)]
+        while true { }
     }
 }
 
