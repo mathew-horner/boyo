@@ -42,25 +42,72 @@ impl Gameboy {
         let instruction = cartridge.read_bytes(self.cpu.pc, size);
         let mut skip_pc = false;
         match opcode {
-            Opcode::NOP => 4,
             Opcode::RLCA => {
                 // TODO-Q: Is this the right thing to do? How do we set Z?
                 self.cpu.set_flags(1, 0, 0, self.cpu.z());
-                4
             },
             Opcode::LD_HL_B => {
                 self.memory[self.cpu.hl() as usize] = self.cpu.b;
-                8
             },
             Opcode::JP_a16 => {
                 self.cpu.pc = (instruction & 0xFFFF) as u16;
                 skip_pc = true;
-                16
             },
+            Opcode::NOP => (),
         };
         if !skip_pc {
             self.cpu.pc += size;
         }
         base_cycles
+    }
+}
+
+mod tests {
+    use super::{Cartridge, Gameboy};
+
+    fn test_gameboy(mock_rom: Option<Vec<u8>>) -> Gameboy {
+        let mut rom = vec![0; 0xFFFF];
+        if mock_rom.is_some() {
+            for (idx, byte) in mock_rom.unwrap().iter().enumerate() {
+                rom[0x100 + idx] = *byte;
+            }
+        }
+        Gameboy::new(Cartridge { rom })
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_NOP() {
+        let mut gameboy = test_gameboy(None);
+        let cycles = gameboy.tick();
+        assert_eq!(4, cycles);
+        assert_eq!(0x101, gameboy.cpu.pc);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_RLCA() {
+        // TODO: Need to figure out what this operation actually does first.
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_LD_HL_B() {
+        let mut gameboy = test_gameboy(Some(vec![0x70]));
+        gameboy.cpu.h = 0x13;
+        gameboy.cpu.l = 0x37;
+        gameboy.cpu.b = 0xFF;
+        let cycles = gameboy.tick();
+        assert_eq!(8, cycles);
+        assert_eq!(0xFF, gameboy.memory[0x1337]);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_JP_a16() {
+        let mut gameboy = test_gameboy(Some(vec![0xC3, 0x13, 0x37]));
+        let cycles = gameboy.tick();
+        assert_eq!(16, cycles);
+        assert_eq!(0x1337, gameboy.cpu.pc);
     }
 }
