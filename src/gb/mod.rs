@@ -54,6 +54,7 @@ impl Gameboy {
             Opcode::DEC_B => {
             },
             Opcode::LD_B_d8 => {
+                self.cpu.b = (instruction & 0xFF) as u8;
             },
             Opcode::RLCA => {
                 // TODO-Q: Is this the right thing to do? How do we set Z?
@@ -72,6 +73,7 @@ impl Gameboy {
             Opcode::DEC_C => {
             },
             Opcode::LD_C_d8 => {
+                self.cpu.c = (instruction & 0xFF) as u8;
             },
             Opcode::RRCA => {
             },
@@ -88,6 +90,7 @@ impl Gameboy {
             Opcode::DEC_D => {
             },
             Opcode::LD_D_d8 => {
+                self.cpu.d = (instruction & 0xFF) as u8;
             },
             Opcode::RLA => {
             },
@@ -104,6 +107,7 @@ impl Gameboy {
             Opcode::DEC_E => {
             },
             Opcode::LD_E_d8 => {
+                self.cpu.e = (instruction & 0xFF) as u8;
             },
             Opcode::RRA => {
             },
@@ -120,6 +124,7 @@ impl Gameboy {
             Opcode::DEC_H => {
             },
             Opcode::LD_H_d8 => {
+                self.cpu.h = (instruction & 0xFF) as u8;
             },
             Opcode::DAA => {
             },
@@ -136,6 +141,7 @@ impl Gameboy {
             Opcode::DEC_L => {
             },
             Opcode::LD_L_d8 => {
+                self.cpu.l = (instruction & 0xFF) as u8;
             },
             Opcode::CPL => {
             },
@@ -569,8 +575,63 @@ mod tests {
 
     #[test]
     #[allow(non_snake_case)]
+    fn test_LD_B_d8() {
+        let mut gameboy = test_gameboy(Some(vec![0x06, 0xFF]));
+        let cycles = gameboy.tick();
+        assert_eq!(8, cycles);
+        assert_eq!(0xFF, gameboy.cpu.b);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
     fn test_RLCA() {
         // TODO: Need to figure out what this operation actually does first.
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_LD_C_d8() {
+        let mut gameboy = test_gameboy(Some(vec![0x0E, 0xFF]));
+        let cycles = gameboy.tick();
+        assert_eq!(8, cycles);
+        assert_eq!(0xFF, gameboy.cpu.c);
+    }
+
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_LD_D_d8() {
+        let mut gameboy = test_gameboy(Some(vec![0x16, 0xFF]));
+        let cycles = gameboy.tick();
+        assert_eq!(8, cycles);
+        assert_eq!(0xFF, gameboy.cpu.d);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_LD_E_d8() {
+        let mut gameboy = test_gameboy(Some(vec![0x1E, 0xFF]));
+        let cycles = gameboy.tick();
+        assert_eq!(8, cycles);
+        assert_eq!(0xFF, gameboy.cpu.e);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_LD_H_d8() {
+        let mut gameboy = test_gameboy(Some(vec![0x26, 0xFF]));
+        let cycles = gameboy.tick();
+        assert_eq!(8, cycles);
+        assert_eq!(0xFF, gameboy.cpu.h);
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_LD_L_d8() {
+        let mut gameboy = test_gameboy(Some(vec![0x2E, 0xFF]));
+        let cycles = gameboy.tick();
+        assert_eq!(8, cycles);
+        assert_eq!(0xFF, gameboy.cpu.l);
     }
 
     #[test]
