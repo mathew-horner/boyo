@@ -178,19 +178,24 @@ impl Gameboy {
             },
             Opcode::CCF => {
             },
-            Opcode::LD_B_B => {
-            },
+            Opcode::LD_B_B => (),
             Opcode::LD_B_C => {
+                self.cpu.b = self.cpu.c;
             },
             Opcode::LD_B_D => {
+                self.cpu.b = self.cpu.d;
             },
             Opcode::LD_B_E => {
+                self.cpu.b = self.cpu.e;
             },
             Opcode::LD_B_H => {
+                self.cpu.b = self.cpu.h;
             },
             Opcode::LD_B_L => {
+                self.cpu.b = self.cpu.l;
             },
             Opcode::LD_B_HL => {
+                self.cpu.b = self.memory[self.cpu.hl() as usize];
             },
             Opcode::LD_B_A => {
             },
@@ -292,21 +297,27 @@ impl Gameboy {
             Opcode::LD_HL_A => {
             },
             Opcode::LD_A_B => {
+                self.cpu.a = self.cpu.b;
             },
             Opcode::LD_A_C => {
+                self.cpu.a = self.cpu.c;
             },
             Opcode::LD_A_D => {
+                self.cpu.a = self.cpu.d;
             },
             Opcode::LD_A_E => {
+                self.cpu.a = self.cpu.e;
             },
             Opcode::LD_A_H => {
+                self.cpu.a = self.cpu.h;
             },
             Opcode::LD_A_L => {
+                self.cpu.a = self.cpu.l;
             },
             Opcode::LD_A_HL => {
+                self.cpu.a = self.memory[self.cpu.hl() as usize];
             },
-            Opcode::LD_A_A => {
-            },
+            Opcode::LD_A_A => (),
             Opcode::ADD_A_B => {
             },
             Opcode::ADD_A_C => {
@@ -579,7 +590,7 @@ mod tests {
     use super::{Cartridge, Gameboy};
 
     #[allow(dead_code)] // This isn't dead code but go off.
-    fn test_gameboy(mock_rom: Option<Vec<u8>>) -> Gameboy {
+    fn create_test_gameboy(mock_rom: Option<Vec<u8>>) -> Gameboy {
         let mut rom = vec![0; 0xFFFF];
         if mock_rom.is_some() {
             for (idx, byte) in mock_rom.unwrap().iter().enumerate() {
@@ -592,28 +603,107 @@ mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn test_NOP() {
-        let mut gameboy = test_gameboy(None);
+        let mut gameboy = create_test_gameboy(None);
         let cycles = gameboy.tick().unwrap();
         assert_eq!(4, cycles);
         assert_eq!(0x101, gameboy.cpu.pc);
     }
 
+    // TODO: Can we iterate?
     #[test]
     #[allow(non_snake_case)]
-    fn test_LD_BC_d16() {
-        let mut gameboy = test_gameboy(Some(vec![0x01, 0x13, 0x37]));
-        let cycles = gameboy.tick().unwrap();
-        assert_eq!(12, cycles);
-        assert_eq!(0x1337, gameboy.cpu.bc());
+    fn test_8bit_LD_d8() {
+        let mut gameboy = create_test_gameboy(Some(vec![0x06, 0xFF, 0x0E, 0xFF, 0x16, 0xFF, 0x1E, 0xFF, 0x26, 0xFF, 0x2E, 0xFF]));
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.c);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.d);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.e);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.h);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.l);
+    }
+
+    // TODO: Can we iterate?
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_8bit_LD_r1r2() {
+        let mut gameboy = create_test_gameboy(Some(vec![
+            0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E,
+            0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
+        ]));
+        gameboy.cpu.a = 0;
+        gameboy.cpu.b = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+        gameboy.cpu.a = 0;
+        gameboy.cpu.c = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+        gameboy.cpu.a = 0;
+        gameboy.cpu.d = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+        gameboy.cpu.a = 0;
+        gameboy.cpu.e = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+        gameboy.cpu.a = 0;
+        gameboy.cpu.h = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+        gameboy.cpu.a = 0;
+        gameboy.cpu.l = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+        gameboy.cpu.a = 0;
+        gameboy.cpu.h = 0x13;
+        gameboy.cpu.l = 0x37;
+        gameboy.memory[0x1337] = 0xFF;
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+
+        gameboy.cpu.b = 0;
+        gameboy.cpu.c = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+        gameboy.cpu.b = 0;
+        gameboy.cpu.d = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+        gameboy.cpu.b = 0;
+        gameboy.cpu.e= 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+        gameboy.cpu.b = 0;
+        gameboy.cpu.h = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+        gameboy.cpu.b = 0;
+        gameboy.cpu.l = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+        gameboy.cpu.b = 0;
+        gameboy.cpu.h = 0x13;
+        gameboy.cpu.l = 0x37;
+        gameboy.memory[0x1337] = 0xFF;
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+
+        // NOCHECKIN: Other tests here.
     }
 
     #[test]
     #[allow(non_snake_case)]
-    fn test_LD_B_d8() {
-        let mut gameboy = test_gameboy(Some(vec![0x06, 0xFF]));
+    fn test_LD_BC_d16() {
+        let mut gameboy = create_test_gameboy(Some(vec![0x01, 0x13, 0x37]));
         let cycles = gameboy.tick().unwrap();
-        assert_eq!(8, cycles);
-        assert_eq!(0xFF, gameboy.cpu.b);
+        assert_eq!(12, cycles);
+        assert_eq!(0x1337, gameboy.cpu.bc());
     }
 
     #[test]
@@ -624,54 +714,8 @@ mod tests {
 
     #[test]
     #[allow(non_snake_case)]
-    fn test_LD_C_d8() {
-        let mut gameboy = test_gameboy(Some(vec![0x0E, 0xFF]));
-        let cycles = gameboy.tick().unwrap();
-        assert_eq!(8, cycles);
-        assert_eq!(0xFF, gameboy.cpu.c);
-    }
-
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn test_LD_D_d8() {
-        let mut gameboy = test_gameboy(Some(vec![0x16, 0xFF]));
-        let cycles = gameboy.tick().unwrap();
-        assert_eq!(8, cycles);
-        assert_eq!(0xFF, gameboy.cpu.d);
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn test_LD_E_d8() {
-        let mut gameboy = test_gameboy(Some(vec![0x1E, 0xFF]));
-        let cycles = gameboy.tick().unwrap();
-        assert_eq!(8, cycles);
-        assert_eq!(0xFF, gameboy.cpu.e);
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn test_LD_H_d8() {
-        let mut gameboy = test_gameboy(Some(vec![0x26, 0xFF]));
-        let cycles = gameboy.tick().unwrap();
-        assert_eq!(8, cycles);
-        assert_eq!(0xFF, gameboy.cpu.h);
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
-    fn test_LD_L_d8() {
-        let mut gameboy = test_gameboy(Some(vec![0x2E, 0xFF]));
-        let cycles = gameboy.tick().unwrap();
-        assert_eq!(8, cycles);
-        assert_eq!(0xFF, gameboy.cpu.l);
-    }
-
-    #[test]
-    #[allow(non_snake_case)]
     fn test_LD_HL_B() {
-        let mut gameboy = test_gameboy(Some(vec![0x70]));
+        let mut gameboy = create_test_gameboy(Some(vec![0x70]));
         gameboy.cpu.h = 0x13;
         gameboy.cpu.l = 0x37;
         gameboy.cpu.b = 0xFF;
@@ -683,7 +727,7 @@ mod tests {
     #[test]
     #[allow(non_snake_case)]
     fn test_JP_a16() {
-        let mut gameboy = test_gameboy(Some(vec![0xC3, 0x13, 0x37]));
+        let mut gameboy = create_test_gameboy(Some(vec![0xC3, 0x13, 0x37]));
         let cycles = gameboy.tick().unwrap();
         assert_eq!(16, cycles);
         assert_eq!(0x1337, gameboy.cpu.pc);
