@@ -4,6 +4,7 @@ mod opcode;
 pub use cartridge::Cartridge;
 use cpu::LR35902;
 use opcode::Opcode;
+use std::fmt;
 
 const MEMORY_SIZE: usize = 8192;
 
@@ -22,9 +23,9 @@ impl Gameboy {
         }
     }
 
-    pub fn tick(&mut self) -> u8 {
+    pub fn tick(&mut self) -> Result<u8, GameboyError> {
         if self.cartridge.is_none() {
-            return 0;
+            return Err(GameboyError::NoCartridge);
         }
         // TODO-PERF: check if as_ref() has a large amount of overhead?
         let cartridge = self.cartridge.as_ref().unwrap();
@@ -34,8 +35,7 @@ impl Gameboy {
         let opcode = match Opcode::parse(opcode) {
             Some(op) => op,
             None => {
-                println!("Error: encountered bad opcode {:#X} at address: {:#X}", opcode, self.cpu.pc);
-                std::process::exit(0);
+                return Err(GameboyError::InvalidOpcode { opcode, address: self.cpu.pc });
             }
         };
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
@@ -44,6 +44,7 @@ impl Gameboy {
         match opcode {
             Opcode::NOP => (),
             Opcode::LD_BC_d16 => {
+                self.cpu.set_bc((instruction & 0xFFFF) as u16);
             },
             Opcode::LD_BC_A => {
             },
@@ -546,7 +547,31 @@ impl Gameboy {
         if !skip_pc {
             self.cpu.pc += size;
         }
-        base_cycles
+        Ok(base_cycles)
+    }
+}
+
+#[derive(Debug)]
+pub enum GameboyError {
+    InvalidOpcode { opcode: u8, address: u16 },
+    NoCartridge,
+}
+
+impl GameboyError {
+    pub fn recoverable(&self) -> bool {
+        match self {
+            Self::InvalidOpcode { .. } => false,
+            Self::NoCartridge => true,
+        }
+    }
+}
+
+impl fmt::Display for GameboyError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Error: {}", match self {
+            Self::InvalidOpcode { opcode, address } => format!("Invalid opcode ({}) at address: {}", opcode, address),
+            Self::NoCartridge => "No cartridge found!".to_owned(),
+        })
     }
 }
 
@@ -568,16 +593,25 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_NOP() {
         let mut gameboy = test_gameboy(None);
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(4, cycles);
         assert_eq!(0x101, gameboy.cpu.pc);
     }
 
     #[test]
     #[allow(non_snake_case)]
+    fn test_LD_BC_d16() {
+        let mut gameboy = test_gameboy(Some(vec![0x01, 0x13, 0x37]));
+        let cycles = gameboy.tick().unwrap();
+        assert_eq!(12, cycles);
+        assert_eq!(0x1337, gameboy.cpu.bc());
+    }
+
+    #[test]
+    #[allow(non_snake_case)]
     fn test_LD_B_d8() {
         let mut gameboy = test_gameboy(Some(vec![0x06, 0xFF]));
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(8, cycles);
         assert_eq!(0xFF, gameboy.cpu.b);
     }
@@ -592,7 +626,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_LD_C_d8() {
         let mut gameboy = test_gameboy(Some(vec![0x0E, 0xFF]));
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(8, cycles);
         assert_eq!(0xFF, gameboy.cpu.c);
     }
@@ -602,7 +636,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_LD_D_d8() {
         let mut gameboy = test_gameboy(Some(vec![0x16, 0xFF]));
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(8, cycles);
         assert_eq!(0xFF, gameboy.cpu.d);
     }
@@ -611,7 +645,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_LD_E_d8() {
         let mut gameboy = test_gameboy(Some(vec![0x1E, 0xFF]));
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(8, cycles);
         assert_eq!(0xFF, gameboy.cpu.e);
     }
@@ -620,7 +654,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_LD_H_d8() {
         let mut gameboy = test_gameboy(Some(vec![0x26, 0xFF]));
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(8, cycles);
         assert_eq!(0xFF, gameboy.cpu.h);
     }
@@ -629,7 +663,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_LD_L_d8() {
         let mut gameboy = test_gameboy(Some(vec![0x2E, 0xFF]));
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(8, cycles);
         assert_eq!(0xFF, gameboy.cpu.l);
     }
@@ -641,7 +675,7 @@ mod tests {
         gameboy.cpu.h = 0x13;
         gameboy.cpu.l = 0x37;
         gameboy.cpu.b = 0xFF;
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(8, cycles);
         assert_eq!(0xFF, gameboy.memory[0x1337]);
     }
@@ -650,7 +684,7 @@ mod tests {
     #[allow(non_snake_case)]
     fn test_JP_a16() {
         let mut gameboy = test_gameboy(Some(vec![0xC3, 0x13, 0x37]));
-        let cycles = gameboy.tick();
+        let cycles = gameboy.tick().unwrap();
         assert_eq!(16, cycles);
         assert_eq!(0x1337, gameboy.cpu.pc);
     }

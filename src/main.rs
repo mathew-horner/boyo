@@ -16,6 +16,14 @@ fn main() {
     let mut gameboy = Gameboy::new(Cartridge::from(path).unwrap());
     #[allow(while_true)]
     while true {
-        gameboy.tick();
+        match gameboy.tick() {
+            Ok(_cycles) => (),
+            Err(error) => {
+                println!("{}", error);
+                if !error.recoverable() {
+                    std::process::exit(0);
+                }
+            }
+        }
     }
 }

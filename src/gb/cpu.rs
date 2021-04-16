@@ -12,8 +12,18 @@ pub struct LR35902 {
 }
 
 impl LR35902 {
+    pub fn set_bc(&mut self, value: u16) {
+        let values = Self::split_bytes(value);
+        self.b = values.0;
+        self.c = values.1;
+    }
+
+    pub fn bc(&self) -> u16 {
+        Self::combine_bytes(self.b, self.c)
+    }
+
     pub fn hl(&self) -> u16 {
-        ((self.h as u16) << 8) | self.l as u16
+        Self::combine_bytes(self.h, self.l)
     }
 
     pub fn z(&self) -> u8 {
@@ -22,5 +32,18 @@ impl LR35902 {
 
     pub fn set_flags(&mut self, z: u8, n: u8, h: u8, c: u8) {
         self.f = 0 | (z << 7) | (n << 6) | (h << 5) | (c << 4);
+    }
+
+    fn split_bytes(value: u16) -> (u8, u8) {
+        // TODO-PERF: Check out assembly to see if this is the best way to calculate this?
+        let mut temp = value;
+        let lower = (temp & 0xFF) as u8;
+        temp >>= 8;
+        let upper = (temp & 0xFF) as u8;
+        (upper, lower)
+    }
+
+    fn combine_bytes(upper: u8, lower: u8) -> u16 {
+        ((upper as u16) << 8) | lower as u16
     }
 }
