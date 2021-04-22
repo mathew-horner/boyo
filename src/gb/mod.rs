@@ -47,6 +47,7 @@ impl Gameboy {
                 self.cpu.set_bc((instruction & 0xFFFF) as u16);
             },
             Opcode::LD_BC_A => {
+                self.memory[self.cpu.bc() as usize] = self.cpu.a;
             },
             Opcode::INC_BC => {
             },
@@ -84,6 +85,7 @@ impl Gameboy {
             Opcode::LD_DE_d16 => {
             },
             Opcode::LD_DE_A => {
+                self.memory[self.cpu.de() as usize] = self.cpu.a;
             },
             Opcode::INC_DE => {
             },
@@ -200,6 +202,7 @@ impl Gameboy {
                 self.cpu.b = self.memory[self.cpu.hl() as usize];
             },
             Opcode::LD_B_A => {
+                self.cpu.b = self.cpu.a;
             },
             Opcode::LD_C_B => {
             },
@@ -216,6 +219,7 @@ impl Gameboy {
             Opcode::LD_C_HL => {
             },
             Opcode::LD_C_A => {
+                self.cpu.c = self.cpu.a;
             },
             Opcode::LD_D_B => {
             },
@@ -232,6 +236,7 @@ impl Gameboy {
             Opcode::LD_D_HL => {
             },
             Opcode::LD_D_A => {
+                self.cpu.d = self.cpu.a;
             },
             Opcode::LD_E_B => {
             },
@@ -248,6 +253,7 @@ impl Gameboy {
             Opcode::LD_E_HL => {
             },
             Opcode::LD_E_A => {
+                self.cpu.e = self.cpu.a;
             },
             Opcode::LD_H_B => {
             },
@@ -264,6 +270,7 @@ impl Gameboy {
             Opcode::LD_H_HL => {
             },
             Opcode::LD_H_A => {
+                self.cpu.h = self.cpu.a;
             },
             Opcode::LD_L_B => {
             },
@@ -280,6 +287,7 @@ impl Gameboy {
             Opcode::LD_L_HL => {
             },
             Opcode::LD_L_A => {
+                self.cpu.l = self.cpu.a;
             },
             Opcode::LD_HL_B => {
                 self.memory[self.cpu.hl() as usize] = self.cpu.b;
@@ -297,6 +305,7 @@ impl Gameboy {
             Opcode::HALT => {
             },
             Opcode::LD_HL_A => {
+                self.memory[self.cpu.hl() as usize] = self.cpu.a;
             },
             Opcode::LD_A_B => {
                 self.cpu.a = self.cpu.b;
@@ -525,6 +534,7 @@ impl Gameboy {
             Opcode::JP_HL => {
             },
             Opcode::LD_a16_A => {
+                self.memory[(instruction & 0xFFFF) as usize] = self.cpu.a;
             },
             Opcode::XOR_d8 => {
             },
@@ -589,6 +599,7 @@ impl fmt::Display for GameboyError {
     }
 }
 
+// TODO: Some of these tests can be made better by explicitly setting register / memory values beforehand instead of inferring.
 mod tests {
     use super::{Cartridge, Gameboy};
 
@@ -723,11 +734,37 @@ mod tests {
     }
 
     // TODO: Can we iterate?
-    // #[test]
-    // #[allow(non_snake_case)]
-    // fn test_8bit_LD_n_A() {
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_8bit_LD_n_A() {
+        let mut gameboy = create_test_gameboy(Some(vec![0x47, 0x4F, 0x57, 0x5F, 0x67, 0x6F, 0x02, 0x12, 0x77, 0xEA, 0x13, 0x37]));
+        gameboy.cpu.a = 0xFF;
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.b);
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.c);
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.d);
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.e);
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.h);
+        assert_eq!(4, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.l);
 
-    // }
+        gameboy.cpu.set_bc(0x1000);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.memory[0x1000]);
+        gameboy.cpu.set_de(0x1010);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.memory[0x1010]);
+        gameboy.cpu.set_hl(0x1020);
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.memory[0x1020]);
+
+        assert_eq!(16, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.memory[0x1337]);
+    }
 
     #[test]
     #[allow(non_snake_case)]

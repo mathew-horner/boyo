@@ -24,6 +24,12 @@ impl LR35902 {
         self.e = values.1;
     }
 
+    pub fn set_hl(&mut self, value: u16) {
+        let values = Self::split_bytes(value);
+        self.h = values.0;
+        self.l = values.1;
+    }
+
     pub fn bc(&self) -> u16 {
         Self::combine_bytes(self.b, self.c)
     }
