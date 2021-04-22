@@ -66,6 +66,7 @@ impl Gameboy {
             Opcode::ADD_HL_BC => {
             },
             Opcode::LD_A_BC => {
+                self.cpu.a = self.memory[self.cpu.bc() as usize];
             },
             Opcode::DEC_BC => {
             },
@@ -100,6 +101,7 @@ impl Gameboy {
             Opcode::ADD_HL_DE => {
             },
             Opcode::LD_A_DE => {
+                self.cpu.a = self.memory[self.cpu.de() as usize];
             },
             Opcode::DEC_DE => {
             },
@@ -547,6 +549,7 @@ impl Gameboy {
             Opcode::LD_SP_HL => {
             },
             Opcode::LD_A_a16 => {
+                self.cpu.a = self.memory[(instruction & 0xFFFF) as usize];
             },
             Opcode::EI => {
             },
@@ -694,8 +697,37 @@ mod tests {
         assert_eq!(8, gameboy.tick().unwrap());
         assert_eq!(0xFF, gameboy.cpu.b);
 
-        // NOCHECKIN: Other tests here.
+        // TODO: Other tests here.
     }
+
+    // TODO: Can we iterate?
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_8bit_LD_A_n() {
+        let mut gameboy = create_test_gameboy(Some(vec![0x0A, 0x1A, 0xFA, 0x10, 0x25])); // TODO: A,#?
+        gameboy.cpu.set_bc(0x1337);
+        gameboy.memory[0x1337] = 0xFF;
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xFF, gameboy.cpu.a);
+
+        gameboy.cpu.a = 0;
+        gameboy.cpu.set_de(0x505);
+        gameboy.memory[0x505] = 0xAC;
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0xAC, gameboy.cpu.a);
+
+        gameboy.cpu.a = 0;
+        gameboy.memory[0x1025] = 0xAB;
+        assert_eq!(16, gameboy.tick().unwrap());
+        assert_eq!(0xAB, gameboy.cpu.a);
+    }
+
+    // TODO: Can we iterate?
+    // #[test]
+    // #[allow(non_snake_case)]
+    // fn test_8bit_LD_n_A() {
+
+    // }
 
     #[test]
     #[allow(non_snake_case)]
