@@ -23,9 +23,9 @@ impl Gameboy {
         }
     }
 
-    pub fn tick(&mut self) -> Result<u8, GameboyError> {
+    pub fn tick(&mut self) -> Result<u8, TickError> {
         if self.cartridge.is_none() {
-            return Err(GameboyError::NoCartridge);
+            return Err(TickError::NoCartridge);
         }
         // TODO-PERF: check if as_ref() has a large amount of overhead?
         let cartridge = self.cartridge.as_ref().unwrap();
@@ -35,7 +35,7 @@ impl Gameboy {
         let opcode = match Opcode::parse(opcode) {
             Some(op) => op,
             None => {
-                return Err(GameboyError::InvalidOpcode { opcode, address: self.cpu.pc });
+                return Err(TickError::InvalidOpcode { opcode, address: self.cpu.pc });
             }
         };
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
@@ -575,15 +575,23 @@ impl Gameboy {
         }
         Ok(base_cycles)
     }
+
+    pub fn read(address: u16) -> u8 {
+        0
+    }
+
+    pub fn write(address: u16, data: u8) -> Result<(), WriteError> {
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
-pub enum GameboyError {
+pub enum TickError {
     InvalidOpcode { opcode: u8, address: u16 },
     NoCartridge,
 }
 
-impl GameboyError {
+impl TickError {
     pub fn recoverable(&self) -> bool {
         match self {
             Self::InvalidOpcode { .. } => false,
@@ -592,7 +600,7 @@ impl GameboyError {
     }
 }
 
-impl fmt::Display for GameboyError {
+impl fmt::Display for TickError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Error: {}", match self {
             Self::InvalidOpcode { opcode, address } => format!("Invalid opcode ({}) at address: {}", opcode, address),
@@ -600,6 +608,8 @@ impl fmt::Display for GameboyError {
         })
     }
 }
+
+pub struct WriteError;
 
 // TODO: Some of these tests can be made better by explicitly setting register / memory values beforehand instead of inferring.
 mod tests {
