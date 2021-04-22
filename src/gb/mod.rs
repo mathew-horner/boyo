@@ -545,6 +545,8 @@ impl Gameboy {
             Opcode::POP_AF => {
             },
             Opcode::LD_A_atC => {
+                // TODO: Have to handle memory mapping to different pieces of hardware depending on address.
+                //self.cpu.a = self.memory[(0xFF00 + (self.cpu.c as u16)) as usize];
             },
             Opcode::DI => {
             },
@@ -764,6 +766,17 @@ mod tests {
 
         assert_eq!(16, gameboy.tick().unwrap());
         assert_eq!(0xFF, gameboy.memory[0x1337]);
+    }
+    
+    #[test]
+    #[allow(non_snake_case)]
+    fn test_LD_A_atC() {
+        let mut gameboy = create_test_gameboy(Some(vec![0xF2, 0x00])); // TODO: Is the second byte junk?
+        gameboy.cpu.a = 0;
+        gameboy.cpu.c = 0x0A;
+        gameboy.memory[0x50] = 0x3C;
+        assert_eq!(8, gameboy.tick().unwrap());
+        assert_eq!(0x3C, gameboy.cpu.a);
     }
 
     #[test]
