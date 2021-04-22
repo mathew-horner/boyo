@@ -35,12 +35,7 @@ impl LR35902 {
     }
 
     fn split_bytes(value: u16) -> (u8, u8) {
-        // TODO-PERF: Check out assembly to see if this is the best way to calculate this?
-        let mut temp = value;
-        let lower = (temp & 0xFF) as u8;
-        temp >>= 8;
-        let upper = (temp & 0xFF) as u8;
-        (upper, lower)
+        (((value & 0xFF00) >> 8) as u8, (value & 0xFF) as u8)
     }
 
     fn combine_bytes(upper: u8, lower: u8) -> u16 {
