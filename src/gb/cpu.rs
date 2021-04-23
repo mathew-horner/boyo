@@ -18,12 +18,14 @@ impl LR35902 {
         self.c = values.1;
     }
 
+    #[allow(dead_code)]
     pub fn set_de(&mut self, value: u16) {
         let values = Self::split_bytes(value);
         self.d = values.0;
         self.e = values.1;
     }
 
+    #[allow(dead_code)]
     pub fn set_hl(&mut self, value: u16) {
         let values = Self::split_bytes(value);
         self.h = values.0;
