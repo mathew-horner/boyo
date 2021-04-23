@@ -40,6 +40,14 @@ impl Gameboy {
         };
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
         let instruction = cartridge.read_bytes(self.cpu.pc, opcode.size() as u16);
+        if !self.execute(&opcode, instruction as u16)? {
+            self.cpu.pc += opcode.size() as u16;
+        }
+        Ok(opcode.base_cycles())
+    }
+
+    // TODO-CQ: Find a way to combine opcode & instruction for brevity?
+    fn execute(&mut self, opcode: &Opcode, instruction: u16) -> Result<bool, TickError> {
         let mut skip_pc = false;
         match opcode.type_ {
             OpcodeType::NOP => (),
@@ -570,10 +578,7 @@ impl Gameboy {
             OpcodeType::RST_38H => {
             },
         }
-        if !skip_pc {
-            self.cpu.pc += opcode.size() as u16;
-        }
-        Ok(opcode.base_cycles())
+        Ok(skip_pc)
     }
 
     fn try_read(&self, address: u16) -> Result<u8, TickError> {
