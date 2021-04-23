@@ -6,12 +6,13 @@ use cpu::LR35902;
 use opcode::Opcode;
 use std::fmt;
 
-const MEMORY_SIZE: usize = 8192;
+const _8KB: usize = 8192;
 
 pub struct Gameboy {
     pub cartridge: Option<Cartridge>,
     pub cpu: LR35902,
-    pub memory: [u8; MEMORY_SIZE],
+    pub ram: [u8; _8KB],
+    pub vram: [u8; _8KB],
 }
 
 impl Gameboy {
@@ -19,7 +20,8 @@ impl Gameboy {
         Self {
             cartridge: Some(cartridge),
             cpu: LR35902 { pc: 0x0100, sp: 0xFFFE, a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, h: 0, l: 0 },
-            memory: [0; MEMORY_SIZE],
+            ram: [0; _8KB],
+            vram: [0; _8KB],
         }
     }
 
@@ -47,7 +49,7 @@ impl Gameboy {
                 self.cpu.set_bc((instruction & 0xFFFF) as u16);
             },
             Opcode::LD_BC_A => {
-                self.memory[self.cpu.bc() as usize] = self.cpu.a;
+                self.try_write(self.cpu.bc(), self.cpu.a)?;
             },
             Opcode::INC_BC => {
             },
@@ -67,7 +69,7 @@ impl Gameboy {
             Opcode::ADD_HL_BC => {
             },
             Opcode::LD_A_BC => {
-                self.cpu.a = self.memory[self.cpu.bc() as usize];
+                self.cpu.a = self.try_read(self.cpu.bc())?;
             },
             Opcode::DEC_BC => {
             },
@@ -85,7 +87,7 @@ impl Gameboy {
             Opcode::LD_DE_d16 => {
             },
             Opcode::LD_DE_A => {
-                self.memory[self.cpu.de() as usize] = self.cpu.a;
+                self.try_write(self.cpu.de(), self.cpu.a)?;
             },
             Opcode::INC_DE => {
             },
@@ -103,7 +105,7 @@ impl Gameboy {
             Opcode::ADD_HL_DE => {
             },
             Opcode::LD_A_DE => {
-                self.cpu.a = self.memory[self.cpu.de() as usize];
+                self.cpu.a = self.try_read(self.cpu.de())?;
             },
             Opcode::DEC_DE => {
             },
@@ -199,7 +201,7 @@ impl Gameboy {
                 self.cpu.b = self.cpu.l;
             },
             Opcode::LD_B_HL => {
-                self.cpu.b = self.memory[self.cpu.hl() as usize];
+                self.cpu.b = self.try_read(self.cpu.hl())?;
             },
             Opcode::LD_B_A => {
                 self.cpu.b = self.cpu.a;
@@ -290,7 +292,7 @@ impl Gameboy {
                 self.cpu.l = self.cpu.a;
             },
             Opcode::LD_HL_B => {
-                self.memory[self.cpu.hl() as usize] = self.cpu.b;
+                self.try_write(self.cpu.hl(), self.cpu.b)?;
             },
             Opcode::LD_HL_C => {
             },
@@ -305,7 +307,7 @@ impl Gameboy {
             Opcode::HALT => {
             },
             Opcode::LD_HL_A => {
-                self.memory[self.cpu.hl() as usize] = self.cpu.a;
+                self.try_write(self.cpu.hl(), self.cpu.a)?;
             },
             Opcode::LD_A_B => {
                 self.cpu.a = self.cpu.b;
@@ -326,7 +328,7 @@ impl Gameboy {
                 self.cpu.a = self.cpu.l;
             },
             Opcode::LD_A_HL => {
-                self.cpu.a = self.memory[self.cpu.hl() as usize];
+                self.cpu.a = self.try_read(self.cpu.hl())?;
             },
             Opcode::LD_A_A => (),
             Opcode::ADD_A_B => {
@@ -534,7 +536,7 @@ impl Gameboy {
             Opcode::JP_HL => {
             },
             Opcode::LD_a16_A => {
-                self.memory[(instruction & 0xFFFF) as usize] = self.cpu.a;
+                self.try_write((instruction & 0xFFFF) as u16, self.cpu.a)?;
             },
             Opcode::XOR_d8 => {
             },
@@ -546,7 +548,7 @@ impl Gameboy {
             },
             Opcode::LD_A_atC => {
                 // TODO: Have to handle memory mapping to different pieces of hardware depending on address.
-                //self.cpu.a = self.memory[(0xFF00 + (self.cpu.c as u16)) as usize];
+                //self.cpu.a = self.ram[(0xFF00 + (self.cpu.c as u16)) as usize];
             },
             Opcode::DI => {
             },
@@ -561,7 +563,7 @@ impl Gameboy {
             Opcode::LD_SP_HL => {
             },
             Opcode::LD_A_a16 => {
-                self.cpu.a = self.memory[(instruction & 0xFFFF) as usize];
+                self.cpu.a = self.try_read((instruction & 0xFFFF) as u16)?;
             },
             Opcode::EI => {
             },
@@ -576,26 +578,156 @@ impl Gameboy {
         Ok(base_cycles)
     }
 
-    pub fn read(address: u16) -> u8 {
-        0
+    fn try_read(&self, address: u16) -> Result<u8, TickError> {
+        match self.read(address) {
+            Ok(data) => Ok(data),
+            Err(error) => Err(TickError::MemoryRead { address, error }),
+        }
     }
 
-    pub fn write(address: u16, data: u8) -> Result<(), WriteError> {
-        Ok(())
+    fn try_write(&mut self, address: u16, data: u8) -> Result<(), TickError> {
+        match self.write(address, data) {
+            Ok(_) => Ok(()),
+            Err(error) => Err(TickError::MemoryWrite { address, error }),
+        }
+    }
+
+    fn read(&self, address: u16) -> Result<u8, ReadError> {
+        let range = AddressRange::get(address);
+        match range {
+            AddressRange::ROMBank0 | AddressRange::SwitchableROMBank => {
+                match &self.cartridge {
+                    Some(cartridge) => Ok(cartridge.rom[range.normalize(address)]),
+                    None => Err(ReadError::NoCartridge),
+                }
+            },
+            AddressRange::VideoRAM
+                => Ok(self.vram[range.normalize(address)]),
+            AddressRange::SwitchableRAMBank
+                => Ok(0), // TODO: Implement.
+            AddressRange::InternalRAM | AddressRange::InternalRAMEcho
+                => Ok(self.ram[range.normalize(address)]),
+            AddressRange::SpriteAttributeMemory
+                => Ok(0), // TODO: Implement.
+            AddressRange::Empty
+                => Err(ReadError::InvalidAddress),
+            AddressRange::Io 
+                => Ok(0), // TODO: Implement.
+            AddressRange::InternalRAMUpper 
+                => Ok(0), // TODO: Implement.
+            AddressRange::InterruptEnableRegister 
+                => Ok(0), // TODO: Implement.
+        }
+    }
+
+    fn write(&mut self, address: u16, data: u8) -> Result<(), WriteError> {
+        let range = AddressRange::get(address);
+        match range {
+            AddressRange::ROMBank0
+                | AddressRange::SwitchableROMBank
+                | AddressRange::InternalRAMEcho => Err(WriteError::ReadOnly),
+            
+            AddressRange::VideoRAM => {
+                self.vram[range.normalize(address)] = data;
+                Ok(())
+            },
+            AddressRange::SwitchableRAMBank => {
+                // TODO: Implement.
+                Ok(())
+            },
+            AddressRange::InternalRAM => {
+                self.ram[range.normalize(address)] = data;
+                Ok(())
+            },
+            AddressRange::SpriteAttributeMemory => {
+                // TODO: Implement.
+                Ok(())
+            },
+            AddressRange::Empty => Err(WriteError::InvalidAddress),
+            AddressRange::Io => {
+                // TODO: Implement.
+                Ok(())
+            },
+            AddressRange::InternalRAMUpper => {
+                // TODO: Implement.
+                Ok(())
+            },
+            AddressRange::InterruptEnableRegister => {
+                // TODO: Implement.
+                Ok(())
+            }
+        }
+    }
+}
+
+enum AddressRange {
+    ROMBank0,
+    SwitchableROMBank,
+    VideoRAM,
+    SwitchableRAMBank,
+    InternalRAM,
+    InternalRAMEcho,
+    SpriteAttributeMemory,
+    Empty,
+    Io,
+    InternalRAMUpper,
+    InterruptEnableRegister,
+}
+
+impl AddressRange {
+    fn get(address: u16) -> AddressRange {
+        if address < 0x4000 {
+            return AddressRange::ROMBank0;
+        } else if address >= 0x4000 && address < 0x8000 {
+            return AddressRange::SwitchableROMBank;
+        } else if address >= 0x8000 && address < 0xA000 {
+            return AddressRange::VideoRAM;
+        } else if address >= 0xA000 && address < 0xC000 {
+            return AddressRange::SwitchableRAMBank;
+        } else if address >= 0xC000 && address < 0xE000 {
+            return AddressRange::InternalRAM;
+        } else if address >= 0xE000 && address < 0xFE00 {
+            return AddressRange::InternalRAMEcho;
+        } else if address >= 0xFE00 && address < 0xFEA0 {
+            return AddressRange::SpriteAttributeMemory;
+        } else if address >= 0xFEA0 && address < 0xFF00 {
+            return AddressRange::Empty;
+        } else if address >= 0xFF00 && address < 0xFF4C {
+            return AddressRange::Io;
+        } else if address >= 0xFF4C && address < 0xFF80 {
+            return AddressRange::Empty;
+        } else if address >= 0xFF80 && address < 0xFFFF {
+            return AddressRange::InternalRAMUpper;
+        } else {
+            return AddressRange::InterruptEnableRegister;
+        }
+    }
+
+    fn normalize(&self, address: u16) -> usize {
+        let base = match self {
+            AddressRange::VideoRAM => 0x8000,
+            AddressRange::InternalRAM => 0xC000,
+            _ => 0x0000,
+        };
+        return (address - base) as usize;
     }
 }
 
 #[derive(Debug)]
 pub enum TickError {
     InvalidOpcode { opcode: u8, address: u16 },
+    MemoryRead { address: u16, error: ReadError },
+    MemoryWrite { address: u16, error: WriteError },
     NoCartridge,
 }
 
 impl TickError {
     pub fn recoverable(&self) -> bool {
         match self {
-            Self::InvalidOpcode { .. } => false,
-            Self::NoCartridge => true,
+            Self::InvalidOpcode { .. }
+                | Self::MemoryRead { .. }
+                | Self::MemoryWrite { .. } => false,
+            Self::NoCartridge => true, 
         }
     }
 }
@@ -604,9 +736,39 @@ impl fmt::Display for TickError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Error: {}", match self {
             Self::InvalidOpcode { opcode, address } => format!("Invalid opcode ({}) at address: {}", opcode, address),
+            Self::MemoryRead { address, error } => format!("Could not read from address {:#X}: {}", address, error),
+            Self::MemoryWrite { address, error } => format!("Could not write to address {:#X}: {}", address, error),
             Self::NoCartridge => "No cartridge found!".to_owned(),
         })
     }
 }
 
-pub struct WriteError;
+#[derive(Debug)]
+pub enum ReadError {
+    InvalidAddress,
+    NoCartridge,
+}
+
+impl fmt::Display for ReadError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self {
+            Self::InvalidAddress => "Invalid address",
+            Self::NoCartridge => "No cartridge inserted",
+        })
+    }
+}
+
+#[derive(Debug)]
+pub enum WriteError {
+    InvalidAddress,
+    ReadOnly,
+}
+
+impl fmt::Display for WriteError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self {
+            Self::InvalidAddress => "Invalid address",
+            Self::ReadOnly => "Tried to write to read-only memory",
+        })
+    }
+}
