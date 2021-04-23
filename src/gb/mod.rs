@@ -3,7 +3,7 @@ mod cpu;
 mod opcode;
 pub use cartridge::Cartridge;
 use cpu::LR35902;
-use opcode::Opcode;
+use opcode::{ Opcode, OpcodeType };
 use std::fmt;
 
 const _8KB: usize = 8192;
@@ -32,8 +32,6 @@ impl Gameboy {
         // TODO-PERF: check if as_ref() has a large amount of overhead?
         let cartridge = self.cartridge.as_ref().unwrap();
         let opcode = cartridge.read_bytes(self.cpu.pc, 1) as u8;
-        let base_cycles = Opcode::base_cycles(opcode);
-        let size = Opcode::size(opcode) as u16;
         let opcode = match Opcode::parse(opcode) {
             Some(op) => op,
             None => {
@@ -41,541 +39,541 @@ impl Gameboy {
             }
         };
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
-        let instruction = cartridge.read_bytes(self.cpu.pc, size);
+        let instruction = cartridge.read_bytes(self.cpu.pc, opcode.size() as u16);
         let mut skip_pc = false;
-        match opcode {
-            Opcode::NOP => (),
-            Opcode::LD_BC_d16 => {
+        match opcode.type_ {
+            OpcodeType::NOP => (),
+            OpcodeType::LD_BC_d16 => {
                 self.cpu.set_bc((instruction & 0xFFFF) as u16);
             },
-            Opcode::LD_BC_A => {
+            OpcodeType::LD_BC_A => {
                 self.try_write(self.cpu.bc(), self.cpu.a)?;
             },
-            Opcode::INC_BC => {
+            OpcodeType::INC_BC => {
             },
-            Opcode::INC_B => {
+            OpcodeType::INC_B => {
             },
-            Opcode::DEC_B => {
+            OpcodeType::DEC_B => {
             },
-            Opcode::LD_B_d8 => {
+            OpcodeType::LD_B_d8 => {
                 self.cpu.b = (instruction & 0xFF) as u8;
             },
-            Opcode::RLCA => {
+            OpcodeType::RLCA => {
                 // TODO-Q: Is this the right thing to do? How do we set Z?
                 self.cpu.set_flags(1, 0, 0, self.cpu.z());
             },
-            Opcode::LD_a16_SP => {
+            OpcodeType::LD_a16_SP => {
             },
-            Opcode::ADD_HL_BC => {
+            OpcodeType::ADD_HL_BC => {
             },
-            Opcode::LD_A_BC => {
+            OpcodeType::LD_A_BC => {
                 self.cpu.a = self.try_read(self.cpu.bc())?;
             },
-            Opcode::DEC_BC => {
+            OpcodeType::DEC_BC => {
             },
-            Opcode::INC_C => {
+            OpcodeType::INC_C => {
             },
-            Opcode::DEC_C => {
+            OpcodeType::DEC_C => {
             },
-            Opcode::LD_C_d8 => {
+            OpcodeType::LD_C_d8 => {
                 self.cpu.c = (instruction & 0xFF) as u8;
             },
-            Opcode::RRCA => {
+            OpcodeType::RRCA => {
             },
-            Opcode::STOP_0 => {
+            OpcodeType::STOP_0 => {
             },
-            Opcode::LD_DE_d16 => {
+            OpcodeType::LD_DE_d16 => {
             },
-            Opcode::LD_DE_A => {
+            OpcodeType::LD_DE_A => {
                 self.try_write(self.cpu.de(), self.cpu.a)?;
             },
-            Opcode::INC_DE => {
+            OpcodeType::INC_DE => {
             },
-            Opcode::INC_D => {
+            OpcodeType::INC_D => {
             },
-            Opcode::DEC_D => {
+            OpcodeType::DEC_D => {
             },
-            Opcode::LD_D_d8 => {
+            OpcodeType::LD_D_d8 => {
                 self.cpu.d = (instruction & 0xFF) as u8;
             },
-            Opcode::RLA => {
+            OpcodeType::RLA => {
             },
-            Opcode::JR_r8 => {
+            OpcodeType::JR_r8 => {
             },
-            Opcode::ADD_HL_DE => {
+            OpcodeType::ADD_HL_DE => {
             },
-            Opcode::LD_A_DE => {
+            OpcodeType::LD_A_DE => {
                 self.cpu.a = self.try_read(self.cpu.de())?;
             },
-            Opcode::DEC_DE => {
+            OpcodeType::DEC_DE => {
             },
-            Opcode::INC_E => {
+            OpcodeType::INC_E => {
             },
-            Opcode::DEC_E => {
+            OpcodeType::DEC_E => {
             },
-            Opcode::LD_E_d8 => {
+            OpcodeType::LD_E_d8 => {
                 self.cpu.e = (instruction & 0xFF) as u8;
             },
-            Opcode::RRA => {
+            OpcodeType::RRA => {
             },
-            Opcode::JR_NZ_r8 => {
+            OpcodeType::JR_NZ_r8 => {
             },
-            Opcode::LD_HL_d16 => {
+            OpcodeType::LD_HL_d16 => {
             },
-            Opcode::LD_HL_plus_A => {
+            OpcodeType::LD_HL_plus_A => {
             },
-            Opcode::INC_HL => {
+            OpcodeType::INC_HL => {
             },
-            Opcode::INC_H => {
+            OpcodeType::INC_H => {
             },
-            Opcode::DEC_H => {
+            OpcodeType::DEC_H => {
             },
-            Opcode::LD_H_d8 => {
+            OpcodeType::LD_H_d8 => {
                 self.cpu.h = (instruction & 0xFF) as u8;
             },
-            Opcode::DAA => {
+            OpcodeType::DAA => {
             },
-            Opcode::JR_Z_r8 => {
+            OpcodeType::JR_Z_r8 => {
             },
-            Opcode::ADD_HL_HL => {
+            OpcodeType::ADD_HL_HL => {
             },
-            Opcode::LD_A_HL_ => {
+            OpcodeType::LD_A_HL_ => {
             },
-            Opcode::DEC_HL => {
+            OpcodeType::DEC_HL => {
             },
-            Opcode::INC_L => {
+            OpcodeType::INC_L => {
             },
-            Opcode::DEC_L => {
+            OpcodeType::DEC_L => {
             },
-            Opcode::LD_L_d8 => {
+            OpcodeType::LD_L_d8 => {
                 self.cpu.l = (instruction & 0xFF) as u8;
             },
-            Opcode::CPL => {
+            OpcodeType::CPL => {
             },
-            Opcode::JR_NC_r8 => {
+            OpcodeType::JR_NC_r8 => {
             },
-            Opcode::LD_SP_d16 => {
+            OpcodeType::LD_SP_d16 => {
             },
-            Opcode::LD_HL_minus_A => {
+            OpcodeType::LD_HL_minus_A => {
             },
-            Opcode::INC_SP => {
+            OpcodeType::INC_SP => {
             },
-            Opcode::INC_atHL => {
+            OpcodeType::INC_atHL => {
             },
-            Opcode::DEC_atHL => {
+            OpcodeType::DEC_atHL => {
             },
-            Opcode::LD_HL_d8 => {
+            OpcodeType::LD_HL_d8 => {
             },
-            Opcode::SCF => {
+            OpcodeType::SCF => {
             },
-            Opcode::JR_C_r8 => {
+            OpcodeType::JR_C_r8 => {
             },
-            Opcode::ADD_HL_SP => {
+            OpcodeType::ADD_HL_SP => {
             },
-            Opcode::LD_A_HL_minus => {
+            OpcodeType::LD_A_HL_minus => {
             },
-            Opcode::DEC_SP => {
+            OpcodeType::DEC_SP => {
             },
-            Opcode::INC_A => {
+            OpcodeType::INC_A => {
             },
-            Opcode::DEC_A => {
+            OpcodeType::DEC_A => {
             },
-            Opcode::LD_A_d8 => {
+            OpcodeType::LD_A_d8 => {
             },
-            Opcode::CCF => {
+            OpcodeType::CCF => {
             },
-            Opcode::LD_B_B => (),
-            Opcode::LD_B_C => {
+            OpcodeType::LD_B_B => (),
+            OpcodeType::LD_B_C => {
                 self.cpu.b = self.cpu.c;
             },
-            Opcode::LD_B_D => {
+            OpcodeType::LD_B_D => {
                 self.cpu.b = self.cpu.d;
             },
-            Opcode::LD_B_E => {
+            OpcodeType::LD_B_E => {
                 self.cpu.b = self.cpu.e;
             },
-            Opcode::LD_B_H => {
+            OpcodeType::LD_B_H => {
                 self.cpu.b = self.cpu.h;
             },
-            Opcode::LD_B_L => {
+            OpcodeType::LD_B_L => {
                 self.cpu.b = self.cpu.l;
             },
-            Opcode::LD_B_HL => {
+            OpcodeType::LD_B_HL => {
                 self.cpu.b = self.try_read(self.cpu.hl())?;
             },
-            Opcode::LD_B_A => {
+            OpcodeType::LD_B_A => {
                 self.cpu.b = self.cpu.a;
             },
-            Opcode::LD_C_B => {
+            OpcodeType::LD_C_B => {
             },
-            Opcode::LD_C_C => {
+            OpcodeType::LD_C_C => {
             },
-            Opcode::LD_C_D => {
+            OpcodeType::LD_C_D => {
             },
-            Opcode::LD_C_E => {
+            OpcodeType::LD_C_E => {
             },
-            Opcode::LD_C_H => {
+            OpcodeType::LD_C_H => {
             },
-            Opcode::LD_C_L => {
+            OpcodeType::LD_C_L => {
             },
-            Opcode::LD_C_HL => {
+            OpcodeType::LD_C_HL => {
             },
-            Opcode::LD_C_A => {
+            OpcodeType::LD_C_A => {
                 self.cpu.c = self.cpu.a;
             },
-            Opcode::LD_D_B => {
+            OpcodeType::LD_D_B => {
             },
-            Opcode::LD_D_C => {
+            OpcodeType::LD_D_C => {
             },
-            Opcode::LD_D_D => {
+            OpcodeType::LD_D_D => {
             },
-            Opcode::LD_D_E => {
+            OpcodeType::LD_D_E => {
             },
-            Opcode::LD_D_H => {
+            OpcodeType::LD_D_H => {
             },
-            Opcode::LD_D_L => {
+            OpcodeType::LD_D_L => {
             },
-            Opcode::LD_D_HL => {
+            OpcodeType::LD_D_HL => {
             },
-            Opcode::LD_D_A => {
+            OpcodeType::LD_D_A => {
                 self.cpu.d = self.cpu.a;
             },
-            Opcode::LD_E_B => {
+            OpcodeType::LD_E_B => {
             },
-            Opcode::LD_E_C => {
+            OpcodeType::LD_E_C => {
             },
-            Opcode::LD_E_D => {
+            OpcodeType::LD_E_D => {
             },
-            Opcode::LD_E_E => {
+            OpcodeType::LD_E_E => {
             },
-            Opcode::LD_E_H => {
+            OpcodeType::LD_E_H => {
             },
-            Opcode::LD_E_L => {
+            OpcodeType::LD_E_L => {
             },
-            Opcode::LD_E_HL => {
+            OpcodeType::LD_E_HL => {
             },
-            Opcode::LD_E_A => {
+            OpcodeType::LD_E_A => {
                 self.cpu.e = self.cpu.a;
             },
-            Opcode::LD_H_B => {
+            OpcodeType::LD_H_B => {
             },
-            Opcode::LD_H_C => {
+            OpcodeType::LD_H_C => {
             },
-            Opcode::LD_H_D => {
+            OpcodeType::LD_H_D => {
             },
-            Opcode::LD_H_E => {
+            OpcodeType::LD_H_E => {
             },
-            Opcode::LD_H_H => {
+            OpcodeType::LD_H_H => {
             },
-            Opcode::LD_H_L => {
+            OpcodeType::LD_H_L => {
             },
-            Opcode::LD_H_HL => {
+            OpcodeType::LD_H_HL => {
             },
-            Opcode::LD_H_A => {
+            OpcodeType::LD_H_A => {
                 self.cpu.h = self.cpu.a;
             },
-            Opcode::LD_L_B => {
+            OpcodeType::LD_L_B => {
             },
-            Opcode::LD_L_C => {
+            OpcodeType::LD_L_C => {
             },
-            Opcode::LD_L_D => {
+            OpcodeType::LD_L_D => {
             },
-            Opcode::LD_L_E => {
+            OpcodeType::LD_L_E => {
             },
-            Opcode::LD_L_H => {
+            OpcodeType::LD_L_H => {
             },
-            Opcode::LD_L_L => {
+            OpcodeType::LD_L_L => {
             },
-            Opcode::LD_L_HL => {
+            OpcodeType::LD_L_HL => {
             },
-            Opcode::LD_L_A => {
+            OpcodeType::LD_L_A => {
                 self.cpu.l = self.cpu.a;
             },
-            Opcode::LD_HL_B => {
+            OpcodeType::LD_HL_B => {
                 self.try_write(self.cpu.hl(), self.cpu.b)?;
             },
-            Opcode::LD_HL_C => {
+            OpcodeType::LD_HL_C => {
             },
-            Opcode::LD_HL_D => {
+            OpcodeType::LD_HL_D => {
             },
-            Opcode::LD_HL_E => {
+            OpcodeType::LD_HL_E => {
             },
-            Opcode::LD_HL_H => {
+            OpcodeType::LD_HL_H => {
             },
-            Opcode::LD_HL_L => {
+            OpcodeType::LD_HL_L => {
             },
-            Opcode::HALT => {
+            OpcodeType::HALT => {
             },
-            Opcode::LD_HL_A => {
+            OpcodeType::LD_HL_A => {
                 self.try_write(self.cpu.hl(), self.cpu.a)?;
             },
-            Opcode::LD_A_B => {
+            OpcodeType::LD_A_B => {
                 self.cpu.a = self.cpu.b;
             },
-            Opcode::LD_A_C => {
+            OpcodeType::LD_A_C => {
                 self.cpu.a = self.cpu.c;
             },
-            Opcode::LD_A_D => {
+            OpcodeType::LD_A_D => {
                 self.cpu.a = self.cpu.d;
             },
-            Opcode::LD_A_E => {
+            OpcodeType::LD_A_E => {
                 self.cpu.a = self.cpu.e;
             },
-            Opcode::LD_A_H => {
+            OpcodeType::LD_A_H => {
                 self.cpu.a = self.cpu.h;
             },
-            Opcode::LD_A_L => {
+            OpcodeType::LD_A_L => {
                 self.cpu.a = self.cpu.l;
             },
-            Opcode::LD_A_HL => {
+            OpcodeType::LD_A_HL => {
                 self.cpu.a = self.try_read(self.cpu.hl())?;
             },
-            Opcode::LD_A_A => (),
-            Opcode::ADD_A_B => {
+            OpcodeType::LD_A_A => (),
+            OpcodeType::ADD_A_B => {
             },
-            Opcode::ADD_A_C => {
+            OpcodeType::ADD_A_C => {
             },
-            Opcode::ADD_A_D => {
+            OpcodeType::ADD_A_D => {
             },
-            Opcode::ADD_A_E => {
+            OpcodeType::ADD_A_E => {
             },
-            Opcode::ADD_A_H => {
+            OpcodeType::ADD_A_H => {
             },
-            Opcode::ADD_A_L => {
+            OpcodeType::ADD_A_L => {
             },
-            Opcode::ADD_A_HL => {
+            OpcodeType::ADD_A_HL => {
             },
-            Opcode::ADD_A_A => {
+            OpcodeType::ADD_A_A => {
             },
-            Opcode::ADC_A_B => {
+            OpcodeType::ADC_A_B => {
             },
-            Opcode::ADC_A_C => {
+            OpcodeType::ADC_A_C => {
             },
-            Opcode::ADC_A_D => {
+            OpcodeType::ADC_A_D => {
             },
-            Opcode::ADC_A_E => {
+            OpcodeType::ADC_A_E => {
             },
-            Opcode::ADC_A_H => {
+            OpcodeType::ADC_A_H => {
             },
-            Opcode::ADC_A_L => {
+            OpcodeType::ADC_A_L => {
             },
-            Opcode::ADC_A_HL => {
+            OpcodeType::ADC_A_HL => {
             },
-            Opcode::ADC_A_A => {
+            OpcodeType::ADC_A_A => {
             },
-            Opcode::SUB_B => {
+            OpcodeType::SUB_B => {
             },
-            Opcode::SUB_C => {
+            OpcodeType::SUB_C => {
             },
-            Opcode::SUB_D => {
+            OpcodeType::SUB_D => {
             },
-            Opcode::SUB_E => {
+            OpcodeType::SUB_E => {
             },
-            Opcode::SUB_H => {
+            OpcodeType::SUB_H => {
             },
-            Opcode::SUB_L => {
+            OpcodeType::SUB_L => {
             },
-            Opcode::SUB_HL => {
+            OpcodeType::SUB_HL => {
             },
-            Opcode::SUB_A => {
+            OpcodeType::SUB_A => {
             },
-            Opcode::SBC_A_B => {
+            OpcodeType::SBC_A_B => {
             },
-            Opcode::SBC_A_C => {
+            OpcodeType::SBC_A_C => {
             },
-            Opcode::SBC_A_D => {
+            OpcodeType::SBC_A_D => {
             },
-            Opcode::SBC_A_E => {
+            OpcodeType::SBC_A_E => {
             },
-            Opcode::SBC_A_H => {
+            OpcodeType::SBC_A_H => {
             },
-            Opcode::SBC_A_L => {
+            OpcodeType::SBC_A_L => {
             },
-            Opcode::SBC_A_HL => {
+            OpcodeType::SBC_A_HL => {
             },
-            Opcode::SBC_A_A => {
+            OpcodeType::SBC_A_A => {
             },
-            Opcode::AND_B => {
+            OpcodeType::AND_B => {
             },
-            Opcode::AND_C => {
+            OpcodeType::AND_C => {
             },
-            Opcode::AND_D => {
+            OpcodeType::AND_D => {
             },
-            Opcode::AND_E => {
+            OpcodeType::AND_E => {
             },
-            Opcode::AND_H => {
+            OpcodeType::AND_H => {
             },
-            Opcode::AND_L => {
+            OpcodeType::AND_L => {
             },
-            Opcode::AND_HL => {
+            OpcodeType::AND_HL => {
             },
-            Opcode::AND_A => {
+            OpcodeType::AND_A => {
             },
-            Opcode::XOR_B => {
+            OpcodeType::XOR_B => {
             },
-            Opcode::XOR_C => {
+            OpcodeType::XOR_C => {
             },
-            Opcode::XOR_D => {
+            OpcodeType::XOR_D => {
             },
-            Opcode::XOR_E => {
+            OpcodeType::XOR_E => {
             },
-            Opcode::XOR_H => {
+            OpcodeType::XOR_H => {
             },
-            Opcode::XOR_L => {
+            OpcodeType::XOR_L => {
             },
-            Opcode::XOR_HL => {
+            OpcodeType::XOR_HL => {
             },
-            Opcode::XOR_A => {
+            OpcodeType::XOR_A => {
             },
-            Opcode::OR_B => {
+            OpcodeType::OR_B => {
             },
-            Opcode::OR_C => {
+            OpcodeType::OR_C => {
             },
-            Opcode::OR_D => {
+            OpcodeType::OR_D => {
             },
-            Opcode::OR_E => {
+            OpcodeType::OR_E => {
             },
-            Opcode::OR_H => {
+            OpcodeType::OR_H => {
             },
-            Opcode::OR_L => {
+            OpcodeType::OR_L => {
             },
-            Opcode::OR_HL => {
+            OpcodeType::OR_HL => {
             },
-            Opcode::OR_A => {
+            OpcodeType::OR_A => {
             },
-            Opcode::CP_B => {
+            OpcodeType::CP_B => {
             },
-            Opcode::CP_C => {
+            OpcodeType::CP_C => {
             },
-            Opcode::CP_D => {
+            OpcodeType::CP_D => {
             },
-            Opcode::CP_E => {
+            OpcodeType::CP_E => {
             },
-            Opcode::CP_H => {
+            OpcodeType::CP_H => {
             },
-            Opcode::CP_L => {
+            OpcodeType::CP_L => {
             },
-            Opcode::CP_HL => {
+            OpcodeType::CP_HL => {
             },
-            Opcode::CP_A => {
+            OpcodeType::CP_A => {
             },
-            Opcode::RET_NZ => {
+            OpcodeType::RET_NZ => {
             },
-            Opcode::POP_BC => {
+            OpcodeType::POP_BC => {
             },
-            Opcode::JP_NZ_a16 => {
+            OpcodeType::JP_NZ_a16 => {
             },
-            Opcode::JP_a16 => {
+            OpcodeType::JP_a16 => {
                 self.cpu.pc = (instruction & 0xFFFF) as u16;
                 skip_pc = true;
             },
-            Opcode::CALL_NZ_a16 => {
+            OpcodeType::CALL_NZ_a16 => {
             },
-            Opcode::PUSH_BC => {
+            OpcodeType::PUSH_BC => {
             },
-            Opcode::ADD_A_d8 => {
+            OpcodeType::ADD_A_d8 => {
             },
-            Opcode::RST_00H => {
+            OpcodeType::RST_00H => {
             },
-            Opcode::RET_Z => {
+            OpcodeType::RET_Z => {
             },
-            Opcode::RET => {
+            OpcodeType::RET => {
             },
-            Opcode::JP_Z_a16 => {
+            OpcodeType::JP_Z_a16 => {
             },
-            Opcode::PREFIX_CB => {
+            OpcodeType::PREFIX_CB => {
             },
-            Opcode::CALL_Z_a16 => {
+            OpcodeType::CALL_Z_a16 => {
             },
-            Opcode::CALL_a16 => {
+            OpcodeType::CALL_a16 => {
             },
-            Opcode::ADC_A_d8 => {
+            OpcodeType::ADC_A_d8 => {
             },
-            Opcode::RST_08H => {
+            OpcodeType::RST_08H => {
             },
-            Opcode::RET_NC => {
+            OpcodeType::RET_NC => {
             },
-            Opcode::POP_DE => {
+            OpcodeType::POP_DE => {
             },
-            Opcode::JP_NC_a16 => {
+            OpcodeType::JP_NC_a16 => {
             },
-            Opcode::CALL_NC_a16 => {
+            OpcodeType::CALL_NC_a16 => {
             },
-            Opcode::PUSH_DE => {
+            OpcodeType::PUSH_DE => {
             },
-            Opcode::SUB_d8 => {
+            OpcodeType::SUB_d8 => {
             },
-            Opcode::RST_10H => {
+            OpcodeType::RST_10H => {
             },
-            Opcode::RET_C => {
+            OpcodeType::RET_C => {
             },
-            Opcode::RETI => {
+            OpcodeType::RETI => {
             },
-            Opcode::JP_C_a16 => {
+            OpcodeType::JP_C_a16 => {
             },
-            Opcode::CALL_C_a16 => {
+            OpcodeType::CALL_C_a16 => {
             },
-            Opcode::SBC_A_d8 => {
+            OpcodeType::SBC_A_d8 => {
             },
-            Opcode::RST_18H => {
+            OpcodeType::RST_18H => {
             },
-            Opcode::LDH_a8_A => {
+            OpcodeType::LDH_a8_A => {
             },
-            Opcode::POP_HL => {
+            OpcodeType::POP_HL => {
             },
-            Opcode::LD_atC_A => {
+            OpcodeType::LD_atC_A => {
             },
-            Opcode::PUSH_HL => {
+            OpcodeType::PUSH_HL => {
             },
-            Opcode::AND_d8 => {
+            OpcodeType::AND_d8 => {
             },
-            Opcode::RST_20H => {
+            OpcodeType::RST_20H => {
             },
-            Opcode::ADD_SP_r8 => {
+            OpcodeType::ADD_SP_r8 => {
             },
-            Opcode::JP_HL => {
+            OpcodeType::JP_HL => {
             },
-            Opcode::LD_a16_A => {
+            OpcodeType::LD_a16_A => {
                 self.try_write((instruction & 0xFFFF) as u16, self.cpu.a)?;
             },
-            Opcode::XOR_d8 => {
+            OpcodeType::XOR_d8 => {
             },
-            Opcode::RST_28H => {
+            OpcodeType::RST_28H => {
             },
-            Opcode::LDH_A_a8 => {
+            OpcodeType::LDH_A_a8 => {
             },
-            Opcode::POP_AF => {
+            OpcodeType::POP_AF => {
             },
-            Opcode::LD_A_atC => {
+            OpcodeType::LD_A_atC => {
                 // TODO: Have to handle memory mapping to different pieces of hardware depending on address.
                 //self.cpu.a = self.ram[(0xFF00 + (self.cpu.c as u16)) as usize];
             },
-            Opcode::DI => {
+            OpcodeType::DI => {
             },
-            Opcode::PUSH_AF => {
+            OpcodeType::PUSH_AF => {
             },
-            Opcode::OR_d8 => {
+            OpcodeType::OR_d8 => {
             },
-            Opcode::RST_30H => {
+            OpcodeType::RST_30H => {
             },
-            Opcode::LD_HL_SP_plus_r8 => {
+            OpcodeType::LD_HL_SP_plus_r8 => {
             },
-            Opcode::LD_SP_HL => {
+            OpcodeType::LD_SP_HL => {
             },
-            Opcode::LD_A_a16 => {
+            OpcodeType::LD_A_a16 => {
                 self.cpu.a = self.try_read((instruction & 0xFFFF) as u16)?;
             },
-            Opcode::EI => {
+            OpcodeType::EI => {
             },
-            Opcode::CP_d8 => {
+            OpcodeType::CP_d8 => {
             },
-            Opcode::RST_38H => {
+            OpcodeType::RST_38H => {
             },
         }
         if !skip_pc {
-            self.cpu.pc += size;
+            self.cpu.pc += opcode.size() as u16;
         }
-        Ok(base_cycles)
+        Ok(opcode.base_cycles())
     }
 
     fn try_read(&self, address: u16) -> Result<u8, TickError> {

@@ -1,20 +1,20 @@
-const OPCODE_MAP: [[Option<Opcode>; 16]; 16] = [
-	[Some(Opcode::NOP),      Some(Opcode::LD_BC_d16), Some(Opcode::LD_BC_A),       Some(Opcode::INC_BC),  Some(Opcode::INC_B),         Some(Opcode::DEC_B),    Some(Opcode::LD_B_d8),  Some(Opcode::RLCA),             Some(Opcode::LD_a16_SP),        Some(Opcode::ADD_HL_BC), Some(Opcode::LD_A_BC),       Some(Opcode::DEC_BC),    Some(Opcode::INC_C),      Some(Opcode::DEC_C),    Some(Opcode::LD_C_d8),  Some(Opcode::RRCA)    ],
-	[Some(Opcode::STOP_0),   Some(Opcode::LD_DE_d16), Some(Opcode::LD_DE_A),       Some(Opcode::INC_DE),  Some(Opcode::INC_D),         Some(Opcode::DEC_D),    Some(Opcode::LD_D_d8),  Some(Opcode::RLA),              Some(Opcode::JR_r8),            Some(Opcode::ADD_HL_DE), Some(Opcode::LD_A_DE),       Some(Opcode::DEC_DE),    Some(Opcode::INC_E),      Some(Opcode::DEC_E),    Some(Opcode::LD_E_d8),  Some(Opcode::RRA)     ],
-	[Some(Opcode::JR_NZ_r8), Some(Opcode::LD_HL_d16), Some(Opcode::LD_HL_plus_A),  Some(Opcode::INC_HL),  Some(Opcode::INC_H),         Some(Opcode::DEC_H),    Some(Opcode::LD_H_d8),  Some(Opcode::DAA),              Some(Opcode::JR_Z_r8),          Some(Opcode::ADD_HL_HL), Some(Opcode::LD_A_HL_),      Some(Opcode::DEC_HL),    Some(Opcode::INC_L),      Some(Opcode::DEC_L),    Some(Opcode::LD_L_d8),  Some(Opcode::CPL)     ],
-	[Some(Opcode::JR_NC_r8), Some(Opcode::LD_SP_d16), Some(Opcode::LD_HL_minus_A), Some(Opcode::INC_SP),  Some(Opcode::INC_atHL),      Some(Opcode::DEC_atHL), Some(Opcode::LD_HL_d8), Some(Opcode::SCF),              Some(Opcode::JR_C_r8),          Some(Opcode::ADD_HL_SP), Some(Opcode::LD_A_HL_minus), Some(Opcode::DEC_SP),    Some(Opcode::INC_A),      Some(Opcode::DEC_A),    Some(Opcode::LD_A_d8),  Some(Opcode::CCF)     ],
-	[Some(Opcode::LD_B_B),   Some(Opcode::LD_B_C),    Some(Opcode::LD_B_D),        Some(Opcode::LD_B_E),  Some(Opcode::LD_B_H),        Some(Opcode::LD_B_L),   Some(Opcode::LD_B_HL),  Some(Opcode::LD_B_A),           Some(Opcode::LD_C_B),           Some(Opcode::LD_C_C),    Some(Opcode::LD_C_D),        Some(Opcode::LD_C_E),    Some(Opcode::LD_C_H),     Some(Opcode::LD_C_L),   Some(Opcode::LD_C_HL),  Some(Opcode::LD_C_A)  ],
-	[Some(Opcode::LD_D_B),   Some(Opcode::LD_D_C),    Some(Opcode::LD_D_D),        Some(Opcode::LD_D_E),  Some(Opcode::LD_D_H),        Some(Opcode::LD_D_L),   Some(Opcode::LD_D_HL),  Some(Opcode::LD_D_A),           Some(Opcode::LD_E_B),           Some(Opcode::LD_E_C),    Some(Opcode::LD_E_D),        Some(Opcode::LD_E_E),    Some(Opcode::LD_E_H),     Some(Opcode::LD_E_L),   Some(Opcode::LD_E_HL),  Some(Opcode::LD_E_A)  ],
-	[Some(Opcode::LD_H_B),   Some(Opcode::LD_H_C),    Some(Opcode::LD_H_D),        Some(Opcode::LD_H_E),  Some(Opcode::LD_H_H),        Some(Opcode::LD_H_L),   Some(Opcode::LD_H_HL),  Some(Opcode::LD_H_A),           Some(Opcode::LD_L_B),           Some(Opcode::LD_L_C),    Some(Opcode::LD_L_D),        Some(Opcode::LD_L_E),    Some(Opcode::LD_L_H),     Some(Opcode::LD_L_L),   Some(Opcode::LD_L_HL),  Some(Opcode::LD_L_A)  ],
-	[Some(Opcode::LD_HL_B),  Some(Opcode::LD_HL_C),   Some(Opcode::LD_HL_D),       Some(Opcode::LD_HL_E), Some(Opcode::LD_HL_H),       Some(Opcode::LD_HL_L),  Some(Opcode::HALT),     Some(Opcode::LD_HL_A),          Some(Opcode::LD_A_B),           Some(Opcode::LD_A_C),    Some(Opcode::LD_A_D),        Some(Opcode::LD_A_E),    Some(Opcode::LD_A_H),     Some(Opcode::LD_A_L),   Some(Opcode::LD_A_HL),  Some(Opcode::LD_A_A)  ],
-	[Some(Opcode::ADD_A_B),  Some(Opcode::ADD_A_C),   Some(Opcode::ADD_A_D),       Some(Opcode::ADD_A_E), Some(Opcode::ADD_A_H),       Some(Opcode::ADD_A_L),  Some(Opcode::ADD_A_HL), Some(Opcode::ADD_A_A),          Some(Opcode::ADC_A_B),          Some(Opcode::ADC_A_C),   Some(Opcode::ADC_A_D),       Some(Opcode::ADC_A_E),   Some(Opcode::ADC_A_H),    Some(Opcode::ADC_A_L),  Some(Opcode::ADC_A_HL), Some(Opcode::ADC_A_A) ],
-	[Some(Opcode::SUB_B),    Some(Opcode::SUB_C),     Some(Opcode::SUB_D),         Some(Opcode::SUB_E),   Some(Opcode::SUB_H),         Some(Opcode::SUB_L),    Some(Opcode::SUB_HL),   Some(Opcode::SUB_A),            Some(Opcode::SBC_A_B),          Some(Opcode::SBC_A_C),   Some(Opcode::SBC_A_D),       Some(Opcode::SBC_A_E),   Some(Opcode::SBC_A_H),    Some(Opcode::SBC_A_L),  Some(Opcode::SBC_A_HL), Some(Opcode::SBC_A_A) ],
-	[Some(Opcode::AND_B),    Some(Opcode::AND_C),     Some(Opcode::AND_D),         Some(Opcode::AND_E),   Some(Opcode::AND_H),         Some(Opcode::AND_L),    Some(Opcode::AND_HL),   Some(Opcode::AND_A),            Some(Opcode::XOR_B),            Some(Opcode::XOR_C),     Some(Opcode::XOR_D),         Some(Opcode::XOR_E),     Some(Opcode::XOR_H),      Some(Opcode::XOR_L),    Some(Opcode::XOR_HL),   Some(Opcode::XOR_A)   ],
-	[Some(Opcode::OR_B),     Some(Opcode::OR_C),      Some(Opcode::OR_D),          Some(Opcode::OR_E),    Some(Opcode::OR_H),          Some(Opcode::OR_L),     Some(Opcode::OR_HL),    Some(Opcode::OR_A),             Some(Opcode::CP_B),             Some(Opcode::CP_C),      Some(Opcode::CP_D),          Some(Opcode::CP_E),      Some(Opcode::CP_H),       Some(Opcode::CP_L),     Some(Opcode::CP_HL),    Some(Opcode::CP_A)    ],
-	[Some(Opcode::RET_NZ),   Some(Opcode::POP_BC),    Some(Opcode::JP_NZ_a16),     Some(Opcode::JP_a16),  Some(Opcode::CALL_NZ_a16),   Some(Opcode::PUSH_BC),  Some(Opcode::ADD_A_d8), Some(Opcode::RST_00H),          Some(Opcode::RET_Z),            Some(Opcode::RET),       Some(Opcode::JP_Z_a16),      Some(Opcode::PREFIX_CB), Some(Opcode::CALL_Z_a16), Some(Opcode::CALL_a16), Some(Opcode::ADC_A_d8), Some(Opcode::RST_08H) ],
-	[Some(Opcode::RET_NC),   Some(Opcode::POP_DE),    Some(Opcode::JP_NC_a16),     None,                  Some(Opcode::CALL_NC_a16),   Some(Opcode::PUSH_DE),  Some(Opcode::SUB_d8),   Some(Opcode::RST_10H),          Some(Opcode::RET_C),            Some(Opcode::RETI),      Some(Opcode::JP_C_a16),      None,                    Some(Opcode::CALL_C_a16), None,                   Some(Opcode::SBC_A_d8), Some(Opcode::RST_18H) ],
-	[Some(Opcode::LDH_a8_A), Some(Opcode::POP_HL),    Some(Opcode::LD_atC_A),      None,                  None,                        Some(Opcode::PUSH_HL),  Some(Opcode::AND_d8),   Some(Opcode::RST_20H),          Some(Opcode::ADD_SP_r8),        Some(Opcode::JP_HL),     Some(Opcode::LD_a16_A),      None,                    None,                     None,                   Some(Opcode::XOR_d8),   Some(Opcode::RST_28H) ],
-	[Some(Opcode::LDH_A_a8), Some(Opcode::POP_AF),    Some(Opcode::LD_A_atC),      Some(Opcode::DI),      None,                        Some(Opcode::PUSH_AF),  Some(Opcode::OR_d8),    Some(Opcode::RST_30H),          Some(Opcode::LD_HL_SP_plus_r8), Some(Opcode::LD_SP_HL),  Some(Opcode::LD_A_a16),      Some(Opcode::EI),        None,                     None,                   Some(Opcode::CP_d8),    Some(Opcode::RST_38H) ],
+const OPCODE_MAP: [[Option<OpcodeType>; 16]; 16] = [
+	[Some(OpcodeType::NOP),      Some(OpcodeType::LD_BC_d16), Some(OpcodeType::LD_BC_A),       Some(OpcodeType::INC_BC),  Some(OpcodeType::INC_B),         Some(OpcodeType::DEC_B),    Some(OpcodeType::LD_B_d8),  Some(OpcodeType::RLCA),             Some(OpcodeType::LD_a16_SP),        Some(OpcodeType::ADD_HL_BC), Some(OpcodeType::LD_A_BC),       Some(OpcodeType::DEC_BC),    Some(OpcodeType::INC_C),      Some(OpcodeType::DEC_C),    Some(OpcodeType::LD_C_d8),  Some(OpcodeType::RRCA)    ],
+	[Some(OpcodeType::STOP_0),   Some(OpcodeType::LD_DE_d16), Some(OpcodeType::LD_DE_A),       Some(OpcodeType::INC_DE),  Some(OpcodeType::INC_D),         Some(OpcodeType::DEC_D),    Some(OpcodeType::LD_D_d8),  Some(OpcodeType::RLA),              Some(OpcodeType::JR_r8),            Some(OpcodeType::ADD_HL_DE), Some(OpcodeType::LD_A_DE),       Some(OpcodeType::DEC_DE),    Some(OpcodeType::INC_E),      Some(OpcodeType::DEC_E),    Some(OpcodeType::LD_E_d8),  Some(OpcodeType::RRA)     ],
+	[Some(OpcodeType::JR_NZ_r8), Some(OpcodeType::LD_HL_d16), Some(OpcodeType::LD_HL_plus_A),  Some(OpcodeType::INC_HL),  Some(OpcodeType::INC_H),         Some(OpcodeType::DEC_H),    Some(OpcodeType::LD_H_d8),  Some(OpcodeType::DAA),              Some(OpcodeType::JR_Z_r8),          Some(OpcodeType::ADD_HL_HL), Some(OpcodeType::LD_A_HL_),      Some(OpcodeType::DEC_HL),    Some(OpcodeType::INC_L),      Some(OpcodeType::DEC_L),    Some(OpcodeType::LD_L_d8),  Some(OpcodeType::CPL)     ],
+	[Some(OpcodeType::JR_NC_r8), Some(OpcodeType::LD_SP_d16), Some(OpcodeType::LD_HL_minus_A), Some(OpcodeType::INC_SP),  Some(OpcodeType::INC_atHL),      Some(OpcodeType::DEC_atHL), Some(OpcodeType::LD_HL_d8), Some(OpcodeType::SCF),              Some(OpcodeType::JR_C_r8),          Some(OpcodeType::ADD_HL_SP), Some(OpcodeType::LD_A_HL_minus), Some(OpcodeType::DEC_SP),    Some(OpcodeType::INC_A),      Some(OpcodeType::DEC_A),    Some(OpcodeType::LD_A_d8),  Some(OpcodeType::CCF)     ],
+	[Some(OpcodeType::LD_B_B),   Some(OpcodeType::LD_B_C),    Some(OpcodeType::LD_B_D),        Some(OpcodeType::LD_B_E),  Some(OpcodeType::LD_B_H),        Some(OpcodeType::LD_B_L),   Some(OpcodeType::LD_B_HL),  Some(OpcodeType::LD_B_A),           Some(OpcodeType::LD_C_B),           Some(OpcodeType::LD_C_C),    Some(OpcodeType::LD_C_D),        Some(OpcodeType::LD_C_E),    Some(OpcodeType::LD_C_H),     Some(OpcodeType::LD_C_L),   Some(OpcodeType::LD_C_HL),  Some(OpcodeType::LD_C_A)  ],
+	[Some(OpcodeType::LD_D_B),   Some(OpcodeType::LD_D_C),    Some(OpcodeType::LD_D_D),        Some(OpcodeType::LD_D_E),  Some(OpcodeType::LD_D_H),        Some(OpcodeType::LD_D_L),   Some(OpcodeType::LD_D_HL),  Some(OpcodeType::LD_D_A),           Some(OpcodeType::LD_E_B),           Some(OpcodeType::LD_E_C),    Some(OpcodeType::LD_E_D),        Some(OpcodeType::LD_E_E),    Some(OpcodeType::LD_E_H),     Some(OpcodeType::LD_E_L),   Some(OpcodeType::LD_E_HL),  Some(OpcodeType::LD_E_A)  ],
+	[Some(OpcodeType::LD_H_B),   Some(OpcodeType::LD_H_C),    Some(OpcodeType::LD_H_D),        Some(OpcodeType::LD_H_E),  Some(OpcodeType::LD_H_H),        Some(OpcodeType::LD_H_L),   Some(OpcodeType::LD_H_HL),  Some(OpcodeType::LD_H_A),           Some(OpcodeType::LD_L_B),           Some(OpcodeType::LD_L_C),    Some(OpcodeType::LD_L_D),        Some(OpcodeType::LD_L_E),    Some(OpcodeType::LD_L_H),     Some(OpcodeType::LD_L_L),   Some(OpcodeType::LD_L_HL),  Some(OpcodeType::LD_L_A)  ],
+	[Some(OpcodeType::LD_HL_B),  Some(OpcodeType::LD_HL_C),   Some(OpcodeType::LD_HL_D),       Some(OpcodeType::LD_HL_E), Some(OpcodeType::LD_HL_H),       Some(OpcodeType::LD_HL_L),  Some(OpcodeType::HALT),     Some(OpcodeType::LD_HL_A),          Some(OpcodeType::LD_A_B),           Some(OpcodeType::LD_A_C),    Some(OpcodeType::LD_A_D),        Some(OpcodeType::LD_A_E),    Some(OpcodeType::LD_A_H),     Some(OpcodeType::LD_A_L),   Some(OpcodeType::LD_A_HL),  Some(OpcodeType::LD_A_A)  ],
+	[Some(OpcodeType::ADD_A_B),  Some(OpcodeType::ADD_A_C),   Some(OpcodeType::ADD_A_D),       Some(OpcodeType::ADD_A_E), Some(OpcodeType::ADD_A_H),       Some(OpcodeType::ADD_A_L),  Some(OpcodeType::ADD_A_HL), Some(OpcodeType::ADD_A_A),          Some(OpcodeType::ADC_A_B),          Some(OpcodeType::ADC_A_C),   Some(OpcodeType::ADC_A_D),       Some(OpcodeType::ADC_A_E),   Some(OpcodeType::ADC_A_H),    Some(OpcodeType::ADC_A_L),  Some(OpcodeType::ADC_A_HL), Some(OpcodeType::ADC_A_A) ],
+	[Some(OpcodeType::SUB_B),    Some(OpcodeType::SUB_C),     Some(OpcodeType::SUB_D),         Some(OpcodeType::SUB_E),   Some(OpcodeType::SUB_H),         Some(OpcodeType::SUB_L),    Some(OpcodeType::SUB_HL),   Some(OpcodeType::SUB_A),            Some(OpcodeType::SBC_A_B),          Some(OpcodeType::SBC_A_C),   Some(OpcodeType::SBC_A_D),       Some(OpcodeType::SBC_A_E),   Some(OpcodeType::SBC_A_H),    Some(OpcodeType::SBC_A_L),  Some(OpcodeType::SBC_A_HL), Some(OpcodeType::SBC_A_A) ],
+	[Some(OpcodeType::AND_B),    Some(OpcodeType::AND_C),     Some(OpcodeType::AND_D),         Some(OpcodeType::AND_E),   Some(OpcodeType::AND_H),         Some(OpcodeType::AND_L),    Some(OpcodeType::AND_HL),   Some(OpcodeType::AND_A),            Some(OpcodeType::XOR_B),            Some(OpcodeType::XOR_C),     Some(OpcodeType::XOR_D),         Some(OpcodeType::XOR_E),     Some(OpcodeType::XOR_H),      Some(OpcodeType::XOR_L),    Some(OpcodeType::XOR_HL),   Some(OpcodeType::XOR_A)   ],
+	[Some(OpcodeType::OR_B),     Some(OpcodeType::OR_C),      Some(OpcodeType::OR_D),          Some(OpcodeType::OR_E),    Some(OpcodeType::OR_H),          Some(OpcodeType::OR_L),     Some(OpcodeType::OR_HL),    Some(OpcodeType::OR_A),             Some(OpcodeType::CP_B),             Some(OpcodeType::CP_C),      Some(OpcodeType::CP_D),          Some(OpcodeType::CP_E),      Some(OpcodeType::CP_H),       Some(OpcodeType::CP_L),     Some(OpcodeType::CP_HL),    Some(OpcodeType::CP_A)    ],
+	[Some(OpcodeType::RET_NZ),   Some(OpcodeType::POP_BC),    Some(OpcodeType::JP_NZ_a16),     Some(OpcodeType::JP_a16),  Some(OpcodeType::CALL_NZ_a16),   Some(OpcodeType::PUSH_BC),  Some(OpcodeType::ADD_A_d8), Some(OpcodeType::RST_00H),          Some(OpcodeType::RET_Z),            Some(OpcodeType::RET),       Some(OpcodeType::JP_Z_a16),      Some(OpcodeType::PREFIX_CB), Some(OpcodeType::CALL_Z_a16), Some(OpcodeType::CALL_a16), Some(OpcodeType::ADC_A_d8), Some(OpcodeType::RST_08H) ],
+	[Some(OpcodeType::RET_NC),   Some(OpcodeType::POP_DE),    Some(OpcodeType::JP_NC_a16),     None,                	  Some(OpcodeType::CALL_NC_a16),   Some(OpcodeType::PUSH_DE),  Some(OpcodeType::SUB_d8),   Some(OpcodeType::RST_10H),          Some(OpcodeType::RET_C),            Some(OpcodeType::RETI),      Some(OpcodeType::JP_C_a16),      None,                  	  Some(OpcodeType::CALL_C_a16), None,                 		Some(OpcodeType::SBC_A_d8), Some(OpcodeType::RST_18H) ],
+	[Some(OpcodeType::LDH_a8_A), Some(OpcodeType::POP_HL),    Some(OpcodeType::LD_atC_A),      None,                	  None,                      	   Some(OpcodeType::PUSH_HL),  Some(OpcodeType::AND_d8),   Some(OpcodeType::RST_20H),          Some(OpcodeType::ADD_SP_r8),        Some(OpcodeType::JP_HL),     Some(OpcodeType::LD_a16_A),      None,                  	  None,                   		None,                 		Some(OpcodeType::XOR_d8),   Some(OpcodeType::RST_28H) ],
+	[Some(OpcodeType::LDH_A_a8), Some(OpcodeType::POP_AF),    Some(OpcodeType::LD_A_atC),      Some(OpcodeType::DI),      None,                      	   Some(OpcodeType::PUSH_AF),  Some(OpcodeType::OR_d8),    Some(OpcodeType::RST_30H),          Some(OpcodeType::LD_HL_SP_plus_r8), Some(OpcodeType::LD_SP_HL),  Some(OpcodeType::LD_A_a16),      Some(OpcodeType::EI),        None,                   		None,                 		Some(OpcodeType::CP_d8),    Some(OpcodeType::RST_38H) ],
 ];
 
 const OPCODE_SIZES: [[u8; 16]; 16] = [
@@ -55,9 +55,14 @@ const OPCODE_BASE_CYCLES: [[u8; 16]; 16] = [
 	[12, 12, 8,  4,  0,  16, 8,  16, 12, 8,  16, 4, 0,  0,  8, 16],
 ];
 
+pub struct Opcode {
+	pub data: u8,
+	pub type_: OpcodeType,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Clone)]
-pub enum Opcode {
+pub enum OpcodeType {
 	NOP,
 	LD_BC_d16,
 	LD_BC_A,
@@ -306,18 +311,21 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    pub fn parse(opcode: u8) -> Option<Self> {
-        let (row, col) = Self::get_indices(opcode);
-        OPCODE_MAP[row][col].clone()
+    pub fn parse(data: u8) -> Option<Self> {
+        let (row, col) = Self::get_indices(data);
+		match &OPCODE_MAP[row][col] {
+			Some(type_) => Some(Self { data, type_: type_.clone() }),
+			None => None,
+		}
     }
 
-    pub fn size(opcode: u8) -> u8 {
-        let (row, col) = Self::get_indices(opcode);
+    pub fn size(&self) -> u8 {
+        let (row, col) = Self::get_indices(self.data);
         OPCODE_SIZES[row][col]
     }
 
-    pub fn base_cycles(opcode: u8) -> u8 {
-        let (row, col) = Self::get_indices(opcode);
+    pub fn base_cycles(&self) -> u8 {
+        let (row, col) = Self::get_indices(self.data);
         OPCODE_BASE_CYCLES[row][col]
     }
 
