@@ -1,7 +1,9 @@
 mod cartridge;
 mod cpu;
+mod debugger;
 mod opcode;
 pub use cartridge::Cartridge;
+pub use debugger::Debugger;
 use cpu::LR35902;
 use opcode::{ Opcode, OpcodeType };
 use std::fmt;
@@ -581,7 +583,7 @@ impl Gameboy {
         Ok(skip_pc)
     }
 
-    fn try_read(&self, address: u16) -> Result<u8, TickError> {
+    pub fn try_read(&self, address: u16) -> Result<u8, TickError> {
         match self.read(address) {
             Ok(data) => Ok(data),
             Err(error) => Err(TickError::MemoryRead { address, error }),
