@@ -1,4 +1,5 @@
 use crate::{ Gameboy, TickError };
+use super::opcode::Opcode;
 use std::fmt;
 
 pub struct Debugger {
@@ -74,8 +75,18 @@ impl Debugger {
             "next" => {
                 let pc = &self.gameboy.cpu.pc;
                 match self.gameboy.try_read(*pc) {
-                    Ok(value) => println!("{:#X}: {:#04X}", pc, value),
-                    Err(error) => println!("{}", error),
+                    Ok(opcode) => {
+                        match Opcode::parse(opcode) {
+                            Some(opcode) => {
+                                match self.gameboy.try_cartridge_read_bytes(*pc, opcode.size() as u16) {
+                                    Ok(instruction) => println!("{:#X}: {:#08X}", pc, instruction),
+                                    Err(error) => println!("Unable to read instruction: {}", error),
+                                }
+                            },
+                            None => println!("Unable to parse opcode: {:#04X}", opcode),
+                        }
+                    },
+                    Err(error) => println!("Unable to read opcode: {}", error),
                 }
             },
             "registers" => {
