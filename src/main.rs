@@ -41,52 +41,11 @@ fn main() {
             print!("> ");
             let _ = std::io::stdout().flush();
             let mut command = String::new();
-            std::io::stdin().read_line(&mut command).expect("Failed to read command for debugger!");
-            match command.trim() {
-                "exit" => std::process::exit(0),
-                "help" => {
-                    println!("---------------");
-                    println!(" Boyo Debugger");
-                    println!("---------------\n");
-                    println!("Commands");
-                    println!("* exit - Exits the program.");
-                    println!("* help - How you got here.");
-                    println!("* next - Displays the next instruction to be executed.");
-                    println!("* registers - Displays the contents of all cpu registers.");
-                    println!("* step - Executes a single instruction.\n");
-                },
-                "next" => {
-                    let pc = &debugger.gameboy.cpu.pc;
-                    match debugger.gameboy.try_read(*pc) {
-                        Ok(value) => println!("{:#X}: {:#04X}", pc, value),
-                        Err(error) => println!("{}", error),
-                    }
-                },
-                "registers" => {
-                    let cpu = &debugger.gameboy.cpu;
-                    println!("a: {:#X}", cpu.a);
-                    println!("b: {:#X}", cpu.b);
-                    println!("c: {:#X}", cpu.c);
-                    println!("d: {:#X}", cpu.d);
-                    println!("e: {:#X}", cpu.e);
-                    println!("f: {:#X}", cpu.f);
-                    println!("h: {:#X}", cpu.h);
-                    println!("l: {:#X}", cpu.l);
-                }
-                "step" => {
-                    match debugger.step() {
-                        Ok(_) => (),
-                        Err(error) => {
-                            // TODO: Find a way to make this a function?
-                            println!("{}", error);
-                            if !error.recoverable() {
-                                std::process::exit(0);
-                            }
-                        }
-                    }
-                },
-                _ => println!("Error: Invalid command!"),
-            }
+            std::io::stdin()
+                .read_line(&mut command)
+                .expect("Failed to read command for debugger!");
+                
+            debugger.invoke_command(command.trim());
         }
     }
 }
