@@ -1,6 +1,6 @@
 mod gb;
 use clap::{App, Arg};
-use gb::{Gameboy, Cartridge, Debugger, TickError};
+use gb::{Gameboy, Cartridge, Debugger};
 use std::io::{self, Write};
 use std::time::{Duration, Instant};
 use std::thread::sleep;
