@@ -44,6 +44,14 @@ impl Debugger {
                     Err(error) => println!("{}", error),
                 }
             },
+            "continue" => {
+                // Tick once before checking Self::should_break() so we don't hang on a single address.
+                self.gameboy.tick().unwrap(); // TODO: Error handle, cycle handle.
+    
+                while !self.should_break() {
+                    self.gameboy.tick().unwrap(); // TODO: Error handle, cycle handle.
+                }
+            },
             "exit" => std::process::exit(0),
             "help" => {
                 println!("---------------");
@@ -53,6 +61,7 @@ impl Debugger {
                 println!("* break-add <address> - Adds a new breakpoint at the given (hex) address.");
                 println!("* break-list - Shows all the currently active breakpoints.");
                 println!("* break-remove <address> - Removes an existing breakpoint at the given (hex) address, if it exists.");
+                println!("* continue - Begins execution until a breakpoint is hit.");
                 println!("* exit - Exits the program.");
                 println!("* help - How you got here.");
                 println!("* next - Displays the next instruction to be executed.");
@@ -99,6 +108,15 @@ impl Debugger {
         Ok(())
     }
 
+    fn should_break(&self) -> bool {
+        for breakpoint in self.breakpoints.iter() {
+            if self.gameboy.cpu.pc == breakpoint.address {
+                return true;
+            }
+        }
+        false
+    }
+
     fn parse_break_address(tokens: &Vec<&str>) -> Result<u16, ParseBreakAddressError> {
         if tokens.len() != 2 || tokens[1].len() < 3 || &tokens[1][..2] != "0x" {
             return Err(ParseBreakAddressError::BadUsage { command: String::from(tokens[0]) });
@@ -108,6 +126,7 @@ impl Debugger {
             Err(error) => Err(ParseBreakAddressError::BadParse { error }),
         }
     }
+
 }
 
 struct Breakpoint {
