@@ -7,8 +7,9 @@ impl Cartridge {
         Ok(Self { rom: std::fs::read(path)? })
     }
 
-    // TODO: count should have a maximum value of 4.
     pub fn read_bytes(&self, address: u16, count: u16) -> u32 {
+        // TODO: count should have a maximum value of 4.
+        // TODO: do bounds checking here?
         let mut data: u32 = 0;
         for i in 0..count {
             data <<= 8;

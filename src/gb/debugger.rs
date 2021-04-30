@@ -15,7 +15,7 @@ impl Debugger {
         let tokens: Vec<&str> = command.split(' ').collect();
         match tokens[0] {
             "break-add" => {
-                match Self::parse_break_address(&tokens) {
+                match parse_break_address(&tokens) {
                     Ok(address) => {
                         self.breakpoints.push(Breakpoint::new(address));
                         println!("Breakpoint added at address: {:#X}", address);
@@ -29,9 +29,8 @@ impl Debugger {
                 }
             },
             "break-remove" => {
-                match Self::parse_break_address(&tokens) {
+                match parse_break_address(&tokens) {
                     Ok(address) => {
-                        // TODO-CQ: Could probably use a more FP approach here.
                         for (idx, breakpoint) in self.breakpoints.iter().enumerate() {
                             if breakpoint.address == address {
                                 self.breakpoints.remove(idx);
@@ -101,7 +100,7 @@ impl Debugger {
     }
 
     fn step(&mut self) -> Result<(), TickError> {
-        // Discard cycle count because we don't care about it when in debug mode.
+        // Discard the cycle count because we will draw the frame after every instruction anyways.
         self.gameboy.tick()?;
         Ok(())
     }
@@ -114,17 +113,6 @@ impl Debugger {
         }
         false
     }
-
-    fn parse_break_address(tokens: &Vec<&str>) -> Result<u16, ParseBreakAddressError> {
-        if tokens.len() != 2 || tokens[1].len() < 3 || &tokens[1][..2] != "0x" {
-            return Err(ParseBreakAddressError::BadUsage { command: String::from(tokens[0]) });
-        }
-        match u16::from_str_radix(&tokens[1][2..], 16) {
-            Ok(address) => Ok(address),
-            Err(error) => Err(ParseBreakAddressError::BadParse { error }),
-        }
-    }
-
 }
 
 struct Breakpoint {
@@ -134,6 +122,17 @@ struct Breakpoint {
 impl Breakpoint {
     pub fn new(address: u16) -> Self {
         Self { address }
+    }
+}
+
+// This function is simply for parsing the break-add and break-remove commands, as they share a common structure (break-[add|remove] <address (hex)>).
+fn parse_break_address(tokens: &Vec<&str>) -> Result<u16, ParseBreakAddressError> {
+    if tokens.len() != 2 || tokens[1].len() < 3 || &tokens[1][..2] != "0x" {
+        return Err(ParseBreakAddressError::BadUsage { command: String::from(tokens[0]) });
+    }
+    match u16::from_str_radix(&tokens[1][2..], 16) {
+        Ok(address) => Ok(address),
+        Err(error) => Err(ParseBreakAddressError::BadParse { error }),
     }
 }
 
