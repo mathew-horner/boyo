@@ -45,11 +45,15 @@ impl Debugger {
                 }
             },
             "continue" => {
-                // Tick once before checking Self::should_break() so we don't hang on a single address.
-                self.gameboy.tick().unwrap(); // TODO: Error handle, cycle handle.
-    
-                while !self.should_break() {
-                    self.gameboy.tick().unwrap(); // TODO: Error handle, cycle handle.
+                loop {
+                    // TODO: Handle cycles.
+                    if let Err(error) = self.gameboy.tick() {
+                        error.realize();
+                        break;
+                    }
+                    if self.should_break() {
+                        break;
+                    }
                 }
             },
             "exit" => std::process::exit(0),
