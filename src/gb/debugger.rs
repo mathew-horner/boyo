@@ -50,6 +50,9 @@ impl Debugger {
                 println!(" Boyo Debugger");
                 println!("---------------\n");
                 println!("Commands");
+                println!("* break-add <address> - Adds a new breakpoint at the given (hex) address.");
+                println!("* break-list - Shows all the currently active breakpoints.");
+                println!("* break-remove <address> - Removes an existing breakpoint at the given (hex) address, if it exists.");
                 println!("* exit - Exits the program.");
                 println!("* help - How you got here.");
                 println!("* next - Displays the next instruction to be executed.");
