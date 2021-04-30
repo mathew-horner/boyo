@@ -4,6 +4,7 @@ mod debugger;
 mod opcode;
 pub use cartridge::Cartridge;
 pub use debugger::Debugger;
+use cartridge::CartridgeReadError;
 use cpu::LR35902;
 use opcode::{ Opcode, OpcodeType };
 use std::fmt;
@@ -31,9 +32,7 @@ impl Gameboy {
         if self.cartridge.is_none() {
             return Err(TickError::NoCartridge);
         }
-        // TODO-PERF: check if as_ref() has a large amount of overhead?
-        let cartridge = self.cartridge.as_ref().unwrap();
-        let opcode = cartridge.read_bytes(self.cpu.pc, 1) as u8;
+        let opcode = self.try_cartridge_read_bytes(self.cpu.pc, 1)? as u8; //cartridge.read_bytes(self.cpu.pc, 1) as u8;
         let opcode = match Opcode::parse(opcode) {
             Some(op) => op,
             None => {
@@ -41,7 +40,7 @@ impl Gameboy {
             }
         };
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
-        let instruction = cartridge.read_bytes(self.cpu.pc, opcode.size() as u16);
+        let instruction = self.try_cartridge_read_bytes(self.cpu.pc, opcode.size() as u16)?; //cartridge.read_bytes(self.cpu.pc, opcode.size() as u16);
         if !self.execute(&opcode, instruction as u16)? {
             self.cpu.pc += opcode.size() as u16;
         }
@@ -583,6 +582,15 @@ impl Gameboy {
         Ok(skip_pc)
     }
 
+    fn try_cartridge_read_bytes(&self, address: u16, count: u16) -> Result<u32, TickError> {
+        // TODO-PERF: check if as_ref() has a large amount of overhead?
+        let cartridge = self.cartridge.as_ref().unwrap();
+        match cartridge.read_bytes(address, count) {
+            Ok(value) => Ok(value),
+            Err(error) => Err(TickError::CartridgeRead { address, error })
+        }
+    }
+
     pub fn try_read(&self, address: u16) -> Result<u8, TickError> {
         match self.read(address) {
             Ok(data) => Ok(data),
@@ -720,6 +728,7 @@ impl AddressRange {
 
 #[derive(Debug)]
 pub enum TickError {
+    CartridgeRead { address: u16, error: CartridgeReadError },
     InvalidOpcode { opcode: u8, address: u16 },
     MemoryRead { address: u16, error: ReadError },
     MemoryWrite { address: u16, error: WriteError },
@@ -731,7 +740,8 @@ impl TickError {
         match self {
             Self::InvalidOpcode { .. }
                 | Self::MemoryRead { .. }
-                | Self::MemoryWrite { .. } => false,
+                | Self::MemoryWrite { .. }
+                | Self::CartridgeRead { .. } => false,
             Self::NoCartridge => true, 
         }
     }
@@ -747,9 +757,10 @@ impl TickError {
 impl fmt::Display for TickError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Error: {}", match self {
+            Self::CartridgeRead { address, error } => format!("Could not read from cartridge at address {:#X}: {}", address, error),
             Self::InvalidOpcode { opcode, address } => format!("Invalid opcode ({}) at address: {}", opcode, address),
-            Self::MemoryRead { address, error } => format!("Could not read from address {:#X}: {}", address, error),
-            Self::MemoryWrite { address, error } => format!("Could not write to address {:#X}: {}", address, error),
+            Self::MemoryRead { address, error } => format!("Could not read from memory at address {:#X}: {}", address, error),
+            Self::MemoryWrite { address, error } => format!("Could not write to memory at address {:#X}: {}", address, error),
             Self::NoCartridge => "No cartridge found!".to_owned(),
         })
     }
