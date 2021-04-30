@@ -171,18 +171,17 @@ impl DebuggerCommand {
     }
 
     fn valid_structure(&self) -> bool {
-        let token_length = match self.type_ {
+        self.tokens.len() == match self.type_ {
             DebuggerCommandType::BreakAdd
-                | DebuggerCommandType::BreakRemove => Some(2),
+                | DebuggerCommandType::BreakRemove => 2,
             DebuggerCommandType::BreakList
                 | DebuggerCommandType::Continue
                 | DebuggerCommandType::Exit
                 | DebuggerCommandType::Help
                 | DebuggerCommandType::Next
                 | DebuggerCommandType::Registers
-                | DebuggerCommandType::Step => Some(1),
-        };
-        token_length.is_none() || self.tokens.len() == token_length.unwrap()
+                | DebuggerCommandType::Step        => 1,
+        }
     }
 
     fn usage(&self) -> String {
