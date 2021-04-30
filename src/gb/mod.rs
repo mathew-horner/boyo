@@ -32,7 +32,7 @@ impl Gameboy {
         if self.cartridge.is_none() {
             return Err(TickError::NoCartridge);
         }
-        let opcode = self.try_cartridge_read_bytes(self.cpu.pc, 1)? as u8; //cartridge.read_bytes(self.cpu.pc, 1) as u8;
+        let opcode = self.try_cartridge_read_bytes(self.cpu.pc, 1)? as u8;
         let opcode = match Opcode::parse(opcode) {
             Some(op) => op,
             None => {
@@ -40,7 +40,7 @@ impl Gameboy {
             }
         };
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
-        let instruction = self.try_cartridge_read_bytes(self.cpu.pc, opcode.size() as u16)?; //cartridge.read_bytes(self.cpu.pc, opcode.size() as u16);
+        let instruction = self.try_cartridge_read_bytes(self.cpu.pc, opcode.size() as u16)?;
         if !self.execute(&opcode, instruction as u16)? {
             self.cpu.pc += opcode.size() as u16;
         }
