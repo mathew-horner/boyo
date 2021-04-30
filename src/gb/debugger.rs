@@ -89,13 +89,7 @@ impl Debugger {
             "step" => {
                 match self.step() {
                     Ok(_) => (),
-                    Err(error) => {
-                        // TODO: Find a way to make this a function?
-                        println!("{}", error);
-                        if !error.recoverable() {
-                            std::process::exit(0);
-                        }
-                    }
+                    Err(error) => error.realize(),
                 }
             },
             _ => println!("Invalid command! Type \"help\" to view available commands."),

@@ -735,6 +735,13 @@ impl TickError {
             Self::NoCartridge => true, 
         }
     }
+
+    pub fn realize(&self) {
+        println!("{}", self);
+        if !self.recoverable() {
+            std::process::exit(0);
+        }
+    }
 }
 
 impl fmt::Display for TickError {

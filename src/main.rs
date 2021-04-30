@@ -24,14 +24,10 @@ fn main() {
     if !matches.is_present("debug") {
         #[allow(while_true)]
         while true {
+            // TODO: Handle cycles.
             match gameboy.tick() {
                 Ok(_cycles) => (),
-                Err(error) => {
-                    println!("{}", error);
-                    if !error.recoverable() {
-                        std::process::exit(0);
-                    }
-                }
+                Err(error) => error.realize(),
             }
         }
     } else {
