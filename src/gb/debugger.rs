@@ -52,6 +52,7 @@ impl Debugger {
                     DebuggerCommandType::Continue => {
                         loop {
                             // TODO: Handle cycles.
+                            // TODO: Handle drawing.
                             if let Err(error) = self.gameboy.tick() {
                                 error.realize();
                                 break;
@@ -110,7 +111,7 @@ impl Debugger {
                     DebuggerCommandType::Step => {
                         match self.gameboy.tick() {
                             // Discard the cycle count because we will draw the frame after every instruction anyways.
-                            Ok(_) => (), 
+                            Ok(_) => self.gameboy.display.draw(), 
                             Err(error) => error.realize(),
                         }
                     },

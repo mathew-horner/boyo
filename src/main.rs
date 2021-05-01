@@ -43,12 +43,13 @@ fn main() {
                     Err(error) => error.realize(),
                 }
             }
-            // TODO: Actually draw frame.
-            println!("Draw frame");
+            gameboy.display.draw();
             sleep(frame_duration.checked_sub(start.elapsed()).unwrap());
         }
     } else {
         let mut debugger = Debugger::new(gameboy);
+        debugger.gameboy.display.draw();
+
         #[allow(while_true)]
         while true {
             print!("> ");

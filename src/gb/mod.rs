@@ -1,11 +1,13 @@
 mod cartridge;
 mod cpu;
 mod debugger;
+mod display;
 mod opcode;
 pub use cartridge::Cartridge;
 pub use debugger::Debugger;
 use cartridge::CartridgeReadError;
 use cpu::LR35902;
+use display::Display;
 use opcode::{ Opcode, OpcodeType };
 use std::fmt;
 
@@ -14,6 +16,7 @@ const _8KB: usize = 8192;
 pub struct Gameboy {
     pub cartridge: Option<Cartridge>,
     pub cpu: LR35902,
+    pub display: Display,
     pub ram: [u8; _8KB],
     pub vram: [u8; _8KB],
 }
@@ -23,6 +26,7 @@ impl Gameboy {
         Self {
             cartridge: Some(cartridge),
             cpu: LR35902 { pc: 0x0100, sp: 0xFFFE, a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, h: 0, l: 0 },
+            display: Display::new(),
             ram: [0; _8KB],
             vram: [0; _8KB],
         }
