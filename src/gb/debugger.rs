@@ -21,16 +21,14 @@ impl Debugger {
         match Command::parse(command) {
             Ok(Command::BreakAdd(address)) => {
                 self.breakpoints.insert(address);
-                println!("breakpoint added @ {address:#X}");
+                print(format!("breakpoint added @ {address:#X}"));
             },
             Ok(Command::BreakRemove(address)) => {
                 self.breakpoints.retain(|bp| *bp != address);
-                println!("breakpoint(s) removed @ {address:#X}");
+                print(format!("breakpoint(s) removed @ {address:#X}"));
             },
             Ok(Command::BreakList) => {
-                for bp in &self.breakpoints {
-                    println!("{bp:#X}");
-                }
+                print_many(self.breakpoints.iter().map(|bp| format!("{bp:#X}")));
             },
             Ok(Command::Continue) => {
                 loop {
@@ -48,9 +46,8 @@ impl Debugger {
             Ok(Command::Help) => {
                 // This strange syntax is to make it so the raw string literal prints without a
                 // leading empty line (hence the [1..]) at the end.
-                println!(
-                    "{}",
-                    &r#"
+                print(
+                    r#"
 -------------
 Boyo Debugger
 -------------
@@ -64,7 +61,7 @@ Commands
 * next - Displays the next instruction to be executed.
 * registers - Displays the contents of all cpu registers.
 * step - Executes a single instruction.
-"#[1..]
+"#,
                 );
             },
             Ok(Command::Next) => {
@@ -75,22 +72,25 @@ Commands
                         Some(opcode) => {
                             match self.gameboy.try_cartridge_read_bytes(*pc, opcode.size() as u16) {
                                 Ok(instruction) => {
-                                    println!("{:#X}: {:#08X}", pc, instruction)
+                                    print(format!("{pc:#X}: {instruction:#08X}"));
                                 },
                                 Err(error) => {
-                                    println!("Unable to read instruction: {}", error)
+                                    print(format!("Unable to read instruction: {error}",));
                                 },
                             }
                         },
-                        None => println!("Unable to parse opcode: {:#04X}", opcode),
+                        None => print(format!("Unable to parse opcode: {opcode:#04X}",)),
                     },
-                    Err(error) => println!("Unable to read opcode: {}", error),
+                    Err(error) => print(format!("Unable to read opcode: {error}",)),
                 }
             },
             Ok(Command::Registers) => {
-                for Register { name, value } in self.gameboy.cpu.registers() {
-                    println!("{name}: {value:#X}");
-                }
+                print_many(
+                    self.gameboy
+                        .cpu
+                        .registers()
+                        .map(|Register { name, value }| format!("{name}: {value:#X}")),
+                );
             },
             Ok(Command::Step) => {
                 match self.gameboy.tick() {
@@ -101,7 +101,7 @@ Commands
                 }
             },
             Err(error) => {
-                eprintln!("{error}");
+                print(error.to_string());
             },
         }
     }
@@ -165,4 +165,19 @@ impl Command {
 
 fn parse_hex_address(address: &str) -> Result<u16, CommandParseError<'_>> {
     u16::from_str_radix(address, 16).map_err(|_| CommandParseError::InvalidBreakpointAddress)
+}
+
+fn print(message: impl AsRef<str>) {
+    print_many(std::iter::once(message));
+}
+
+fn print_many<I, S>(messages: I)
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    for message in messages {
+        println!("{}", message.as_ref().trim());
+    }
+    println!();
 }
