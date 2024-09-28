@@ -89,9 +89,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ac6a0c7b1a9e9a5186361f67dfa1b88213572f427fb9ab038efb2bd8c582dab"
 dependencies = [
  "heck",
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 2.0.77",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -109,13 +109,13 @@ checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 [[package]]
 name = "equivalent"
 version = "1.0.1"
-source = "sparse+https://cargo.phylum.io/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "hashbrown"
 version = "0.14.5"
-source = "sparse+https://cargo.phylum.io/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
@@ -127,7 +127,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "indexmap"
 version = "2.5.0"
-source = "sparse+https://cargo.phylum.io/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
@@ -146,16 +146,7 @@ version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
- "unicode-ident 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "proc-macro2"
-version = "1.0.86"
-source = "sparse+https://cargo.phylum.io/"
-checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
-dependencies = [
- "unicode-ident 1.0.13 (sparse+https://cargo.phylum.io/)",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -164,16 +155,7 @@ version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
 dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "quote"
-version = "1.0.37"
-source = "sparse+https://cargo.phylum.io/"
-checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
-dependencies = [
- "proc-macro2 1.0.86 (sparse+https://cargo.phylum.io/)",
+ "proc-macro2",
 ]
 
 [[package]]
@@ -184,30 +166,19 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "syn"
-version = "2.0.77"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f35bcdf61fd8e7be6caf75f429fdca8beb3ed76584befb503b1569faee373ed"
-dependencies = [
- "proc-macro2 1.0.86 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-ident 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "syn"
 version = "2.0.79"
-source = "sparse+https://cargo.phylum.io/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89132cd0bf050864e1d38dc3bbc07a0eb8e7530af26344d3d2bbbef83499f590"
 dependencies = [
- "proc-macro2 1.0.86 (sparse+https://cargo.phylum.io/)",
- "quote 1.0.37 (sparse+https://cargo.phylum.io/)",
- "unicode-ident 1.0.13 (sparse+https://cargo.phylum.io/)",
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
 ]
 
 [[package]]
 name = "thiserror"
 version = "1.0.64"
-source = "sparse+https://cargo.phylum.io/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d50af8abc119fb8bb6dbabcfa89656f46f84aa0ac7688088608076ad2b459a84"
 dependencies = [
  "thiserror-impl",
@@ -216,24 +187,18 @@ dependencies = [
 [[package]]
 name = "thiserror-impl"
 version = "1.0.64"
-source = "sparse+https://cargo.phylum.io/"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08904e7672f5eb876eaaf87e0ce17857500934f4981c4a0ab2b4aa98baac7fc3"
 dependencies = [
- "proc-macro2 1.0.86 (sparse+https://cargo.phylum.io/)",
- "quote 1.0.37 (sparse+https://cargo.phylum.io/)",
- "syn 2.0.79",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
 name = "unicode-ident"
 version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91b56cd4cadaeb79bbf1a5645f6b4f8dc5bde8834ad5894a8db35fda9efa1fe"
-
-[[package]]
-name = "unicode-ident"
-version = "1.0.13"
-source = "sparse+https://cargo.phylum.io/"
 checksum = "e91b56cd4cadaeb79bbf1a5645f6b4f8dc5bde8834ad5894a8db35fda9efa1fe"
 
 [[package]]
