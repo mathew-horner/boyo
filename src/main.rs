@@ -1,43 +1,42 @@
 mod gb;
+
 use std::io::{self, Write};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use clap::{App, Arg};
-use gb::{Cartridge, Debugger, Gameboy};
+use clap::Parser;
 
-// This value is used to throttle the amount of instructions that are executed
-// every frame.
+use crate::gb::{Cartridge, Debugger, Gameboy};
+
+// TODO: Not sure 3 year ago me actually knew what "cycle accurate" means, but
+// today me might be even dumber...
 const CYCLES_PER_FRAME: u32 = 70_224;
 
-// This value is used to lock the frame rate at a given frequency.
 const REFRESH_RATE: f64 = 59.73;
 
+#[derive(Parser)]
+#[command(
+    version,
+    author = "Mathew Horner <mathewhorner456@gmail.com>",
+    about = "A cycle-accurate, efficient, and memory safe emulator for the Gameboy and Gameboy Advance."
+)]
+struct Cli {
+    /// Path to a Gameboy ROM file.
+    rom_path: String,
+
+    /// Launch in command line debug mode.
+    #[arg(short, long, default_value_t = false)]
+    debug: bool,
+}
+
 fn main() {
-    let matches = App::new("boyo")
-        .version(env!("CARGO_PKG_VERSION"))
-        .author("Mathew Horner <mathewhorner456@gmail.com>")
-        .about("A cycle-accurate, efficient, and memory safe emulator for the Gameboy and Gameboy Advance.")
-        .arg(Arg::with_name("rom")
-            .required(true)
-            .index(1))
-        .arg(Arg::with_name("debug")
-            .long("debug")
-            .short("d")
-            .required(false)
-            .takes_value(false))
-        .get_matches();
+    let cli = Cli::parse();
+    let mut gameboy = Gameboy::new(Cartridge::from(&cli.rom_path).unwrap());
 
-    let path = matches.value_of("rom").unwrap();
-    let mut gameboy = Gameboy::new(Cartridge::from(path).unwrap());
-
-    if !matches.is_present("debug") {
-        // Ideally, this would be a constant but Rust doesn't support this as a constant
-        // function yet.
+    if !cli.debug {
         let frame_duration = Duration::from_secs_f64(1.0 / REFRESH_RATE);
 
-        #[allow(while_true)]
-        while true {
+        loop {
             let start = Instant::now();
             let mut frame_cycles = 0;
             while frame_cycles < CYCLES_PER_FRAME {
@@ -48,17 +47,15 @@ fn main() {
             }
             // TODO: Actually draw frame.
             println!("Draw frame");
-            sleep(frame_duration.checked_sub(start.elapsed()).unwrap());
+            sleep(frame_duration.checked_sub(start.elapsed()).unwrap_or(Duration::ZERO));
         }
     } else {
         let mut debugger = Debugger::new(gameboy);
-        #[allow(while_true)]
-        while true {
+        loop {
             print!("> ");
             let _ = io::stdout().flush();
             let mut command = String::new();
             io::stdin().read_line(&mut command).expect("Failed to read command for debugger!");
-
             debugger.invoke_command(command.trim());
         }
     }
