@@ -6,6 +6,9 @@ use crate::Gameboy;
 
 pub struct Debugger {
     gameboy: Gameboy,
+
+    // An IndexSet is used to preserve order, so "break-list" doesn't show breakpoints in an
+    // arbitrary and inconsistent order.
     breakpoints: IndexSet<u16>,
 }
 
@@ -43,6 +46,8 @@ impl Debugger {
             },
             Ok(Command::Exit) => std::process::exit(0),
             Ok(Command::Help) => {
+                // This strange syntax is to make it so the raw string literal prints without a
+                // leading empty line (hence the [1..]) at the end.
                 println!(
                     "{}",
                     &r#"
@@ -89,8 +94,8 @@ Commands
             },
             Ok(Command::Step) => {
                 match self.gameboy.tick() {
-                    // Discard the cycle count because we will draw the frame after every
-                    // instruction anyways.
+                    // We don't need to track the cycle count because we will draw the frame after
+                    // every instruction anyway.
                     Ok(_) => {},
                     Err(error) => error.realize(),
                 }
@@ -147,13 +152,18 @@ impl Command {
             "next" if tokens.len() == 1 => Ok(Command::Next),
             "registers" if tokens.len() == 1 => Ok(Command::Registers),
             "step" if tokens.len() == 1 => Ok(Command::Step),
+
+            // Valid commands should be enumerated here as a fall-through case in scenarios where an
+            // invalid number of tokens are provided.
             "break-add" | "break-remove" | "break-list" | "continue" | "exit" | "help" | "next"
             | "registers" | "step" => Err(CommandParseError::InvalidFormat),
+
             other => Err(CommandParseError::InvalidCommand(other)),
         }
     }
 }
 
+/// Parse an address that is in *hexidecimal* format (i.e. `0xB0FF`).
 fn parse_address(address: &str) -> Result<u16, CommandParseError<'_>> {
     u16::from_str_radix(address, 16).map_err(|_| CommandParseError::InvalidBreakpointAddress)
 }
