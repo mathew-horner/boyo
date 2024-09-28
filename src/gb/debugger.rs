@@ -164,6 +164,7 @@ impl Command {
 }
 
 fn parse_hex_address(address: &str) -> Result<u16, CommandParseError<'_>> {
+    let address = address.strip_prefix("0x").unwrap_or(address);
     u16::from_str_radix(address, 16).map_err(|_| CommandParseError::InvalidBreakpointAddress)
 }
 
