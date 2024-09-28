@@ -18,8 +18,7 @@ const OPCODE_MAP: [[Option<OpcodeType>; 16]; 16] = [
 	[Some(OpcodeType::LDH_A_a8), Some(OpcodeType::POP_AF),    Some(OpcodeType::LD_A_atC),      Some(OpcodeType::DI),      None,                      	   Some(OpcodeType::PUSH_AF),  Some(OpcodeType::OR_d8),    Some(OpcodeType::RST_30H),          Some(OpcodeType::LD_HL_SP_plus_r8), Some(OpcodeType::LD_SP_HL),  Some(OpcodeType::LD_A_a16),      Some(OpcodeType::EI),        None,                   		None,                 		Some(OpcodeType::CP_d8),    Some(OpcodeType::RST_38H) ],
 ];
 
-// The size (in bytes) that instructions with the given opcode will be.
-const OPCODE_SIZES: [[u8; 16]; 16] = [
+const OPCODE_BYTE_COUNT_MAP: [[u8; 16]; 16] = [
     [1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1],
     [2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1],
     [2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1],
@@ -38,10 +37,10 @@ const OPCODE_SIZES: [[u8; 16]; 16] = [
     [2, 1, 2, 1, 0, 1, 2, 1, 2, 1, 3, 1, 0, 0, 2, 1],
 ];
 
+/// Some instructions will require more than the base number of clock cycles. This map represents
+/// the *minimum* number of cycles required for instructions.
 #[rustfmt::skip]
-// Some instructions will require more than the base number of clock cycles.
-// This map represents the *minimum* number of cycles required for instructions.
-const OPCODE_BASE_CYCLES: [[u8; 16]; 16] = [
+const OPCODE_BASE_CYCLE_MAP: [[u8; 16]; 16] = [
 	[4,  12, 8,  8,  4,  4,  8,  4,  20, 8,  8,  8, 4,  4,  8, 4],
 	[4,  12, 8,  8,  4,  4,  8,  4,  12, 8,  8,  8, 4,  4,  8, 4],
 	[8,  12, 8,  8,  4,  4,  8,  4,  8,  8,  8,  8, 4,  4,  8, 4],
@@ -326,12 +325,12 @@ impl Opcode {
 
     pub fn size(&self) -> u8 {
         let (row, col) = Self::get_indices(self.data);
-        OPCODE_SIZES[row][col]
+        OPCODE_BYTE_COUNT_MAP[row][col]
     }
 
     pub fn base_cycles(&self) -> u8 {
         let (row, col) = Self::get_indices(self.data);
-        OPCODE_BASE_CYCLES[row][col]
+        OPCODE_BASE_CYCLE_MAP[row][col]
     }
 
     fn get_indices(opcode: u8) -> (usize, usize) {
