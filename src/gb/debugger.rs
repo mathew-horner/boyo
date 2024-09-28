@@ -138,11 +138,11 @@ impl Command {
         let tokens: Vec<_> = s.split(" ").collect();
         match tokens[0] {
             "break-add" if tokens.len() == 2 => {
-                let address = parse_address(&tokens[1])?;
+                let address = parse_hex_address(&tokens[1])?;
                 Ok(Command::BreakAdd(address))
             },
             "break-remove" if tokens.len() == 2 => {
-                let address = parse_address(&tokens[1])?;
+                let address = parse_hex_address(&tokens[1])?;
                 Ok(Command::BreakRemove(address))
             },
             "break-list" if tokens.len() == 1 => Ok(Command::BreakList),
@@ -163,7 +163,6 @@ impl Command {
     }
 }
 
-/// Parse an address that is in *hexidecimal* format (i.e. `0xB0FF`).
-fn parse_address(address: &str) -> Result<u16, CommandParseError<'_>> {
+fn parse_hex_address(address: &str) -> Result<u16, CommandParseError<'_>> {
     u16::from_str_radix(address, 16).map_err(|_| CommandParseError::InvalidBreakpointAddress)
 }
