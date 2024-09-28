@@ -9,6 +9,7 @@ pub struct LR35902 {
     pub f: u8,
     pub h: u8,
     pub l: u8,
+    pub ime: bool,
 }
 
 impl LR35902 {

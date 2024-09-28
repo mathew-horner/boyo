@@ -71,7 +71,19 @@ impl Gameboy {
     pub fn new(cartridge: Cartridge) -> Self {
         Self {
             cartridge: Some(cartridge),
-            cpu: LR35902 { pc: 0x0100, sp: 0xFFFE, a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, h: 0, l: 0 },
+            cpu: LR35902 {
+                pc: 0x0100,
+                sp: 0xFFFE,
+                a: 0,
+                b: 0,
+                c: 0,
+                d: 0,
+                e: 0,
+                f: 0,
+                h: 0,
+                l: 0,
+                ime: false,
+            },
             ram: [0; _8KB],
             vram: [0; _8KB],
         }
@@ -411,7 +423,10 @@ impl Gameboy {
                 // hardware depending on address. self.cpu.a =
                 // self.ram[(0xFF00 + (self.cpu.c as u16)) as usize];
             },
-            OpcodeType::DI => {},
+            OpcodeType::DI => {
+                // TODO: cancelling any scheduled effects of the EI instruction if any?
+                self.cpu.ime = false;
+            },
             OpcodeType::PUSH_AF => {},
             OpcodeType::OR_d8 => {},
             OpcodeType::RST_30H => {},
@@ -420,7 +435,9 @@ impl Gameboy {
             OpcodeType::LD_A_a16 => {
                 self.cpu.a = self.try_read((instruction & 0xFFFF) as u16)?;
             },
-            OpcodeType::EI => {},
+            OpcodeType::EI => {
+                self.cpu.ime = true;
+            },
             OpcodeType::CP_d8 => {},
             OpcodeType::RST_38H => {},
         }
