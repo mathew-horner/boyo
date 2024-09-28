@@ -1,11 +1,13 @@
 mod gb;
-use clap::{App, Arg};
-use gb::{Gameboy, Cartridge, Debugger};
 use std::io::{self, Write};
-use std::time::{Duration, Instant};
 use std::thread::sleep;
+use std::time::{Duration, Instant};
 
-// This value is used to throttle the amount of instructions that are executed every frame.
+use clap::{App, Arg};
+use gb::{Cartridge, Debugger, Gameboy};
+
+// This value is used to throttle the amount of instructions that are executed
+// every frame.
 const CYCLES_PER_FRAME: u32 = 70_224;
 
 // This value is used to lock the frame rate at a given frequency.
@@ -30,7 +32,8 @@ fn main() {
     let mut gameboy = Gameboy::new(Cartridge::from(path).unwrap());
 
     if !matches.is_present("debug") {
-        // Ideally, this would be a constant but Rust doesn't support this as a constant function yet.
+        // Ideally, this would be a constant but Rust doesn't support this as a constant
+        // function yet.
         let frame_duration = Duration::from_secs_f64(1.0 / REFRESH_RATE);
 
         #[allow(while_true)]
@@ -54,10 +57,8 @@ fn main() {
             print!("> ");
             let _ = io::stdout().flush();
             let mut command = String::new();
-            io::stdin()
-                .read_line(&mut command)
-                .expect("Failed to read command for debugger!");
-                
+            io::stdin().read_line(&mut command).expect("Failed to read command for debugger!");
+
             debugger.invoke_command(command.trim());
         }
     }

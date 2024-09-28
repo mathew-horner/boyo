@@ -2,12 +2,13 @@ mod cartridge;
 mod cpu;
 mod debugger;
 mod opcode;
+use std::fmt;
+
 pub use cartridge::Cartridge;
-pub use debugger::Debugger;
 use cartridge::CartridgeReadError;
 use cpu::LR35902;
-use opcode::{ Opcode, OpcodeType };
-use std::fmt;
+pub use debugger::Debugger;
+use opcode::{Opcode, OpcodeType};
 
 const _8KB: usize = 8192;
 
@@ -37,7 +38,7 @@ impl Gameboy {
             Some(op) => op,
             None => {
                 return Err(TickError::InvalidOpcode { opcode, address: self.cpu.pc });
-            }
+            },
         };
         // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
         let instruction = self.try_cartridge_read_bytes(self.cpu.pc, opcode.size() as u16)?;
@@ -58,12 +59,9 @@ impl Gameboy {
             OpcodeType::LD_BC_A => {
                 self.try_write(self.cpu.bc(), self.cpu.a)?;
             },
-            OpcodeType::INC_BC => {
-            },
-            OpcodeType::INC_B => {
-            },
-            OpcodeType::DEC_B => {
-            },
+            OpcodeType::INC_BC => {},
+            OpcodeType::INC_B => {},
+            OpcodeType::DEC_B => {},
             OpcodeType::LD_B_d8 => {
                 self.cpu.b = (instruction & 0xFF) as u8;
             },
@@ -71,126 +69,78 @@ impl Gameboy {
                 // TODO-Q: Is this the right thing to do? How do we set Z?
                 self.cpu.set_flags(1, 0, 0, self.cpu.z());
             },
-            OpcodeType::LD_a16_SP => {
-            },
-            OpcodeType::ADD_HL_BC => {
-            },
+            OpcodeType::LD_a16_SP => {},
+            OpcodeType::ADD_HL_BC => {},
             OpcodeType::LD_A_BC => {
                 self.cpu.a = self.try_read(self.cpu.bc())?;
             },
-            OpcodeType::DEC_BC => {
-            },
-            OpcodeType::INC_C => {
-            },
-            OpcodeType::DEC_C => {
-            },
+            OpcodeType::DEC_BC => {},
+            OpcodeType::INC_C => {},
+            OpcodeType::DEC_C => {},
             OpcodeType::LD_C_d8 => {
                 self.cpu.c = (instruction & 0xFF) as u8;
             },
-            OpcodeType::RRCA => {
-            },
-            OpcodeType::STOP_0 => {
-            },
-            OpcodeType::LD_DE_d16 => {
-            },
+            OpcodeType::RRCA => {},
+            OpcodeType::STOP_0 => {},
+            OpcodeType::LD_DE_d16 => {},
             OpcodeType::LD_DE_A => {
                 self.try_write(self.cpu.de(), self.cpu.a)?;
             },
-            OpcodeType::INC_DE => {
-            },
-            OpcodeType::INC_D => {
-            },
-            OpcodeType::DEC_D => {
-            },
+            OpcodeType::INC_DE => {},
+            OpcodeType::INC_D => {},
+            OpcodeType::DEC_D => {},
             OpcodeType::LD_D_d8 => {
                 self.cpu.d = (instruction & 0xFF) as u8;
             },
-            OpcodeType::RLA => {
-            },
-            OpcodeType::JR_r8 => {
-            },
-            OpcodeType::ADD_HL_DE => {
-            },
+            OpcodeType::RLA => {},
+            OpcodeType::JR_r8 => {},
+            OpcodeType::ADD_HL_DE => {},
             OpcodeType::LD_A_DE => {
                 self.cpu.a = self.try_read(self.cpu.de())?;
             },
-            OpcodeType::DEC_DE => {
-            },
-            OpcodeType::INC_E => {
-            },
-            OpcodeType::DEC_E => {
-            },
+            OpcodeType::DEC_DE => {},
+            OpcodeType::INC_E => {},
+            OpcodeType::DEC_E => {},
             OpcodeType::LD_E_d8 => {
                 self.cpu.e = (instruction & 0xFF) as u8;
             },
-            OpcodeType::RRA => {
-            },
-            OpcodeType::JR_NZ_r8 => {
-            },
-            OpcodeType::LD_HL_d16 => {
-            },
-            OpcodeType::LD_HL_plus_A => {
-            },
-            OpcodeType::INC_HL => {
-            },
-            OpcodeType::INC_H => {
-            },
-            OpcodeType::DEC_H => {
-            },
+            OpcodeType::RRA => {},
+            OpcodeType::JR_NZ_r8 => {},
+            OpcodeType::LD_HL_d16 => {},
+            OpcodeType::LD_HL_plus_A => {},
+            OpcodeType::INC_HL => {},
+            OpcodeType::INC_H => {},
+            OpcodeType::DEC_H => {},
             OpcodeType::LD_H_d8 => {
                 self.cpu.h = (instruction & 0xFF) as u8;
             },
-            OpcodeType::DAA => {
-            },
-            OpcodeType::JR_Z_r8 => {
-            },
-            OpcodeType::ADD_HL_HL => {
-            },
-            OpcodeType::LD_A_HL_ => {
-            },
-            OpcodeType::DEC_HL => {
-            },
-            OpcodeType::INC_L => {
-            },
-            OpcodeType::DEC_L => {
-            },
+            OpcodeType::DAA => {},
+            OpcodeType::JR_Z_r8 => {},
+            OpcodeType::ADD_HL_HL => {},
+            OpcodeType::LD_A_HL_ => {},
+            OpcodeType::DEC_HL => {},
+            OpcodeType::INC_L => {},
+            OpcodeType::DEC_L => {},
             OpcodeType::LD_L_d8 => {
                 self.cpu.l = (instruction & 0xFF) as u8;
             },
-            OpcodeType::CPL => {
-            },
-            OpcodeType::JR_NC_r8 => {
-            },
-            OpcodeType::LD_SP_d16 => {
-            },
-            OpcodeType::LD_HL_minus_A => {
-            },
-            OpcodeType::INC_SP => {
-            },
-            OpcodeType::INC_atHL => {
-            },
-            OpcodeType::DEC_atHL => {
-            },
-            OpcodeType::LD_HL_d8 => {
-            },
-            OpcodeType::SCF => {
-            },
-            OpcodeType::JR_C_r8 => {
-            },
-            OpcodeType::ADD_HL_SP => {
-            },
-            OpcodeType::LD_A_HL_minus => {
-            },
-            OpcodeType::DEC_SP => {
-            },
-            OpcodeType::INC_A => {
-            },
-            OpcodeType::DEC_A => {
-            },
-            OpcodeType::LD_A_d8 => {
-            },
-            OpcodeType::CCF => {
-            },
+            OpcodeType::CPL => {},
+            OpcodeType::JR_NC_r8 => {},
+            OpcodeType::LD_SP_d16 => {},
+            OpcodeType::LD_HL_minus_A => {},
+            OpcodeType::INC_SP => {},
+            OpcodeType::INC_atHL => {},
+            OpcodeType::DEC_atHL => {},
+            OpcodeType::LD_HL_d8 => {},
+            OpcodeType::SCF => {},
+            OpcodeType::JR_C_r8 => {},
+            OpcodeType::ADD_HL_SP => {},
+            OpcodeType::LD_A_HL_minus => {},
+            OpcodeType::DEC_SP => {},
+            OpcodeType::INC_A => {},
+            OpcodeType::DEC_A => {},
+            OpcodeType::LD_A_d8 => {},
+            OpcodeType::CCF => {},
             OpcodeType::LD_B_B => (),
             OpcodeType::LD_B_C => {
                 self.cpu.b = self.cpu.c;
@@ -213,106 +163,65 @@ impl Gameboy {
             OpcodeType::LD_B_A => {
                 self.cpu.b = self.cpu.a;
             },
-            OpcodeType::LD_C_B => {
-            },
-            OpcodeType::LD_C_C => {
-            },
-            OpcodeType::LD_C_D => {
-            },
-            OpcodeType::LD_C_E => {
-            },
-            OpcodeType::LD_C_H => {
-            },
-            OpcodeType::LD_C_L => {
-            },
-            OpcodeType::LD_C_HL => {
-            },
+            OpcodeType::LD_C_B => {},
+            OpcodeType::LD_C_C => {},
+            OpcodeType::LD_C_D => {},
+            OpcodeType::LD_C_E => {},
+            OpcodeType::LD_C_H => {},
+            OpcodeType::LD_C_L => {},
+            OpcodeType::LD_C_HL => {},
             OpcodeType::LD_C_A => {
                 self.cpu.c = self.cpu.a;
             },
-            OpcodeType::LD_D_B => {
-            },
-            OpcodeType::LD_D_C => {
-            },
-            OpcodeType::LD_D_D => {
-            },
-            OpcodeType::LD_D_E => {
-            },
-            OpcodeType::LD_D_H => {
-            },
-            OpcodeType::LD_D_L => {
-            },
-            OpcodeType::LD_D_HL => {
-            },
+            OpcodeType::LD_D_B => {},
+            OpcodeType::LD_D_C => {},
+            OpcodeType::LD_D_D => {},
+            OpcodeType::LD_D_E => {},
+            OpcodeType::LD_D_H => {},
+            OpcodeType::LD_D_L => {},
+            OpcodeType::LD_D_HL => {},
             OpcodeType::LD_D_A => {
                 self.cpu.d = self.cpu.a;
             },
-            OpcodeType::LD_E_B => {
-            },
-            OpcodeType::LD_E_C => {
-            },
-            OpcodeType::LD_E_D => {
-            },
-            OpcodeType::LD_E_E => {
-            },
-            OpcodeType::LD_E_H => {
-            },
-            OpcodeType::LD_E_L => {
-            },
-            OpcodeType::LD_E_HL => {
-            },
+            OpcodeType::LD_E_B => {},
+            OpcodeType::LD_E_C => {},
+            OpcodeType::LD_E_D => {},
+            OpcodeType::LD_E_E => {},
+            OpcodeType::LD_E_H => {},
+            OpcodeType::LD_E_L => {},
+            OpcodeType::LD_E_HL => {},
             OpcodeType::LD_E_A => {
                 self.cpu.e = self.cpu.a;
             },
-            OpcodeType::LD_H_B => {
-            },
-            OpcodeType::LD_H_C => {
-            },
-            OpcodeType::LD_H_D => {
-            },
-            OpcodeType::LD_H_E => {
-            },
-            OpcodeType::LD_H_H => {
-            },
-            OpcodeType::LD_H_L => {
-            },
-            OpcodeType::LD_H_HL => {
-            },
+            OpcodeType::LD_H_B => {},
+            OpcodeType::LD_H_C => {},
+            OpcodeType::LD_H_D => {},
+            OpcodeType::LD_H_E => {},
+            OpcodeType::LD_H_H => {},
+            OpcodeType::LD_H_L => {},
+            OpcodeType::LD_H_HL => {},
             OpcodeType::LD_H_A => {
                 self.cpu.h = self.cpu.a;
             },
-            OpcodeType::LD_L_B => {
-            },
-            OpcodeType::LD_L_C => {
-            },
-            OpcodeType::LD_L_D => {
-            },
-            OpcodeType::LD_L_E => {
-            },
-            OpcodeType::LD_L_H => {
-            },
-            OpcodeType::LD_L_L => {
-            },
-            OpcodeType::LD_L_HL => {
-            },
+            OpcodeType::LD_L_B => {},
+            OpcodeType::LD_L_C => {},
+            OpcodeType::LD_L_D => {},
+            OpcodeType::LD_L_E => {},
+            OpcodeType::LD_L_H => {},
+            OpcodeType::LD_L_L => {},
+            OpcodeType::LD_L_HL => {},
             OpcodeType::LD_L_A => {
                 self.cpu.l = self.cpu.a;
             },
             OpcodeType::LD_HL_B => {
                 self.try_write(self.cpu.hl(), self.cpu.b)?;
             },
-            OpcodeType::LD_HL_C => {
-            },
-            OpcodeType::LD_HL_D => {
-            },
-            OpcodeType::LD_HL_E => {
-            },
-            OpcodeType::LD_HL_H => {
-            },
-            OpcodeType::LD_HL_L => {
-            },
-            OpcodeType::HALT => {
-            },
+            OpcodeType::LD_HL_C => {},
+            OpcodeType::LD_HL_D => {},
+            OpcodeType::LD_HL_E => {},
+            OpcodeType::LD_HL_H => {},
+            OpcodeType::LD_HL_L => {},
+            OpcodeType::HALT => {},
             OpcodeType::LD_HL_A => {
                 self.try_write(self.cpu.hl(), self.cpu.a)?;
             },
@@ -338,246 +247,134 @@ impl Gameboy {
                 self.cpu.a = self.try_read(self.cpu.hl())?;
             },
             OpcodeType::LD_A_A => (),
-            OpcodeType::ADD_A_B => {
-            },
-            OpcodeType::ADD_A_C => {
-            },
-            OpcodeType::ADD_A_D => {
-            },
-            OpcodeType::ADD_A_E => {
-            },
-            OpcodeType::ADD_A_H => {
-            },
-            OpcodeType::ADD_A_L => {
-            },
-            OpcodeType::ADD_A_HL => {
-            },
-            OpcodeType::ADD_A_A => {
-            },
-            OpcodeType::ADC_A_B => {
-            },
-            OpcodeType::ADC_A_C => {
-            },
-            OpcodeType::ADC_A_D => {
-            },
-            OpcodeType::ADC_A_E => {
-            },
-            OpcodeType::ADC_A_H => {
-            },
-            OpcodeType::ADC_A_L => {
-            },
-            OpcodeType::ADC_A_HL => {
-            },
-            OpcodeType::ADC_A_A => {
-            },
-            OpcodeType::SUB_B => {
-            },
-            OpcodeType::SUB_C => {
-            },
-            OpcodeType::SUB_D => {
-            },
-            OpcodeType::SUB_E => {
-            },
-            OpcodeType::SUB_H => {
-            },
-            OpcodeType::SUB_L => {
-            },
-            OpcodeType::SUB_HL => {
-            },
-            OpcodeType::SUB_A => {
-            },
-            OpcodeType::SBC_A_B => {
-            },
-            OpcodeType::SBC_A_C => {
-            },
-            OpcodeType::SBC_A_D => {
-            },
-            OpcodeType::SBC_A_E => {
-            },
-            OpcodeType::SBC_A_H => {
-            },
-            OpcodeType::SBC_A_L => {
-            },
-            OpcodeType::SBC_A_HL => {
-            },
-            OpcodeType::SBC_A_A => {
-            },
-            OpcodeType::AND_B => {
-            },
-            OpcodeType::AND_C => {
-            },
-            OpcodeType::AND_D => {
-            },
-            OpcodeType::AND_E => {
-            },
-            OpcodeType::AND_H => {
-            },
-            OpcodeType::AND_L => {
-            },
-            OpcodeType::AND_HL => {
-            },
-            OpcodeType::AND_A => {
-            },
-            OpcodeType::XOR_B => {
-            },
-            OpcodeType::XOR_C => {
-            },
-            OpcodeType::XOR_D => {
-            },
-            OpcodeType::XOR_E => {
-            },
-            OpcodeType::XOR_H => {
-            },
-            OpcodeType::XOR_L => {
-            },
-            OpcodeType::XOR_HL => {
-            },
-            OpcodeType::XOR_A => {
-            },
-            OpcodeType::OR_B => {
-            },
-            OpcodeType::OR_C => {
-            },
-            OpcodeType::OR_D => {
-            },
-            OpcodeType::OR_E => {
-            },
-            OpcodeType::OR_H => {
-            },
-            OpcodeType::OR_L => {
-            },
-            OpcodeType::OR_HL => {
-            },
-            OpcodeType::OR_A => {
-            },
-            OpcodeType::CP_B => {
-            },
-            OpcodeType::CP_C => {
-            },
-            OpcodeType::CP_D => {
-            },
-            OpcodeType::CP_E => {
-            },
-            OpcodeType::CP_H => {
-            },
-            OpcodeType::CP_L => {
-            },
-            OpcodeType::CP_HL => {
-            },
-            OpcodeType::CP_A => {
-            },
-            OpcodeType::RET_NZ => {
-            },
-            OpcodeType::POP_BC => {
-            },
-            OpcodeType::JP_NZ_a16 => {
-            },
+            OpcodeType::ADD_A_B => {},
+            OpcodeType::ADD_A_C => {},
+            OpcodeType::ADD_A_D => {},
+            OpcodeType::ADD_A_E => {},
+            OpcodeType::ADD_A_H => {},
+            OpcodeType::ADD_A_L => {},
+            OpcodeType::ADD_A_HL => {},
+            OpcodeType::ADD_A_A => {},
+            OpcodeType::ADC_A_B => {},
+            OpcodeType::ADC_A_C => {},
+            OpcodeType::ADC_A_D => {},
+            OpcodeType::ADC_A_E => {},
+            OpcodeType::ADC_A_H => {},
+            OpcodeType::ADC_A_L => {},
+            OpcodeType::ADC_A_HL => {},
+            OpcodeType::ADC_A_A => {},
+            OpcodeType::SUB_B => {},
+            OpcodeType::SUB_C => {},
+            OpcodeType::SUB_D => {},
+            OpcodeType::SUB_E => {},
+            OpcodeType::SUB_H => {},
+            OpcodeType::SUB_L => {},
+            OpcodeType::SUB_HL => {},
+            OpcodeType::SUB_A => {},
+            OpcodeType::SBC_A_B => {},
+            OpcodeType::SBC_A_C => {},
+            OpcodeType::SBC_A_D => {},
+            OpcodeType::SBC_A_E => {},
+            OpcodeType::SBC_A_H => {},
+            OpcodeType::SBC_A_L => {},
+            OpcodeType::SBC_A_HL => {},
+            OpcodeType::SBC_A_A => {},
+            OpcodeType::AND_B => {},
+            OpcodeType::AND_C => {},
+            OpcodeType::AND_D => {},
+            OpcodeType::AND_E => {},
+            OpcodeType::AND_H => {},
+            OpcodeType::AND_L => {},
+            OpcodeType::AND_HL => {},
+            OpcodeType::AND_A => {},
+            OpcodeType::XOR_B => {},
+            OpcodeType::XOR_C => {},
+            OpcodeType::XOR_D => {},
+            OpcodeType::XOR_E => {},
+            OpcodeType::XOR_H => {},
+            OpcodeType::XOR_L => {},
+            OpcodeType::XOR_HL => {},
+            OpcodeType::XOR_A => {},
+            OpcodeType::OR_B => {},
+            OpcodeType::OR_C => {},
+            OpcodeType::OR_D => {},
+            OpcodeType::OR_E => {},
+            OpcodeType::OR_H => {},
+            OpcodeType::OR_L => {},
+            OpcodeType::OR_HL => {},
+            OpcodeType::OR_A => {},
+            OpcodeType::CP_B => {},
+            OpcodeType::CP_C => {},
+            OpcodeType::CP_D => {},
+            OpcodeType::CP_E => {},
+            OpcodeType::CP_H => {},
+            OpcodeType::CP_L => {},
+            OpcodeType::CP_HL => {},
+            OpcodeType::CP_A => {},
+            OpcodeType::RET_NZ => {},
+            OpcodeType::POP_BC => {},
+            OpcodeType::JP_NZ_a16 => {},
             OpcodeType::JP_a16 => {
                 self.cpu.pc = (instruction & 0xFFFF) as u16;
                 skip_pc = true;
             },
-            OpcodeType::CALL_NZ_a16 => {
-            },
-            OpcodeType::PUSH_BC => {
-            },
-            OpcodeType::ADD_A_d8 => {
-            },
-            OpcodeType::RST_00H => {
-            },
-            OpcodeType::RET_Z => {
-            },
-            OpcodeType::RET => {
-            },
-            OpcodeType::JP_Z_a16 => {
-            },
-            OpcodeType::PREFIX_CB => {
-            },
-            OpcodeType::CALL_Z_a16 => {
-            },
-            OpcodeType::CALL_a16 => {
-            },
-            OpcodeType::ADC_A_d8 => {
-            },
-            OpcodeType::RST_08H => {
-            },
-            OpcodeType::RET_NC => {
-            },
-            OpcodeType::POP_DE => {
-            },
-            OpcodeType::JP_NC_a16 => {
-            },
-            OpcodeType::CALL_NC_a16 => {
-            },
-            OpcodeType::PUSH_DE => {
-            },
-            OpcodeType::SUB_d8 => {
-            },
-            OpcodeType::RST_10H => {
-            },
-            OpcodeType::RET_C => {
-            },
-            OpcodeType::RETI => {
-            },
-            OpcodeType::JP_C_a16 => {
-            },
-            OpcodeType::CALL_C_a16 => {
-            },
-            OpcodeType::SBC_A_d8 => {
-            },
-            OpcodeType::RST_18H => {
-            },
-            OpcodeType::LDH_a8_A => {
-            },
-            OpcodeType::POP_HL => {
-            },
-            OpcodeType::LD_atC_A => {
-            },
-            OpcodeType::PUSH_HL => {
-            },
-            OpcodeType::AND_d8 => {
-            },
-            OpcodeType::RST_20H => {
-            },
-            OpcodeType::ADD_SP_r8 => {
-            },
-            OpcodeType::JP_HL => {
-            },
+            OpcodeType::CALL_NZ_a16 => {},
+            OpcodeType::PUSH_BC => {},
+            OpcodeType::ADD_A_d8 => {},
+            OpcodeType::RST_00H => {},
+            OpcodeType::RET_Z => {},
+            OpcodeType::RET => {},
+            OpcodeType::JP_Z_a16 => {},
+            OpcodeType::PREFIX_CB => {},
+            OpcodeType::CALL_Z_a16 => {},
+            OpcodeType::CALL_a16 => {},
+            OpcodeType::ADC_A_d8 => {},
+            OpcodeType::RST_08H => {},
+            OpcodeType::RET_NC => {},
+            OpcodeType::POP_DE => {},
+            OpcodeType::JP_NC_a16 => {},
+            OpcodeType::CALL_NC_a16 => {},
+            OpcodeType::PUSH_DE => {},
+            OpcodeType::SUB_d8 => {},
+            OpcodeType::RST_10H => {},
+            OpcodeType::RET_C => {},
+            OpcodeType::RETI => {},
+            OpcodeType::JP_C_a16 => {},
+            OpcodeType::CALL_C_a16 => {},
+            OpcodeType::SBC_A_d8 => {},
+            OpcodeType::RST_18H => {},
+            OpcodeType::LDH_a8_A => {},
+            OpcodeType::POP_HL => {},
+            OpcodeType::LD_atC_A => {},
+            OpcodeType::PUSH_HL => {},
+            OpcodeType::AND_d8 => {},
+            OpcodeType::RST_20H => {},
+            OpcodeType::ADD_SP_r8 => {},
+            OpcodeType::JP_HL => {},
             OpcodeType::LD_a16_A => {
                 self.try_write((instruction & 0xFFFF) as u16, self.cpu.a)?;
             },
-            OpcodeType::XOR_d8 => {
-            },
-            OpcodeType::RST_28H => {
-            },
-            OpcodeType::LDH_A_a8 => {
-            },
-            OpcodeType::POP_AF => {
-            },
+            OpcodeType::XOR_d8 => {},
+            OpcodeType::RST_28H => {},
+            OpcodeType::LDH_A_a8 => {},
+            OpcodeType::POP_AF => {},
             OpcodeType::LD_A_atC => {
-                // TODO: Have to handle memory mapping to different pieces of hardware depending on address.
-                //self.cpu.a = self.ram[(0xFF00 + (self.cpu.c as u16)) as usize];
+                // TODO: Have to handle memory mapping to different pieces of
+                // hardware depending on address. self.cpu.a =
+                // self.ram[(0xFF00 + (self.cpu.c as u16)) as usize];
             },
-            OpcodeType::DI => {
-            },
-            OpcodeType::PUSH_AF => {
-            },
-            OpcodeType::OR_d8 => {
-            },
-            OpcodeType::RST_30H => {
-            },
-            OpcodeType::LD_HL_SP_plus_r8 => {
-            },
-            OpcodeType::LD_SP_HL => {
-            },
+            OpcodeType::DI => {},
+            OpcodeType::PUSH_AF => {},
+            OpcodeType::OR_d8 => {},
+            OpcodeType::RST_30H => {},
+            OpcodeType::LD_HL_SP_plus_r8 => {},
+            OpcodeType::LD_SP_HL => {},
             OpcodeType::LD_A_a16 => {
                 self.cpu.a = self.try_read((instruction & 0xFFFF) as u16)?;
             },
-            OpcodeType::EI => {
-            },
-            OpcodeType::CP_d8 => {
-            },
-            OpcodeType::RST_38H => {
-            },
+            OpcodeType::EI => {},
+            OpcodeType::CP_d8 => {},
+            OpcodeType::RST_38H => {},
         }
         Ok(skip_pc)
     }
@@ -587,7 +384,7 @@ impl Gameboy {
         let cartridge = self.cartridge.as_ref().unwrap();
         match cartridge.read_bytes(address, count) {
             Ok(value) => Ok(value),
-            Err(error) => Err(TickError::CartridgeRead { address, error })
+            Err(error) => Err(TickError::CartridgeRead { address, error }),
         }
     }
 
@@ -608,28 +405,20 @@ impl Gameboy {
     fn read(&self, address: u16) -> Result<u8, ReadError> {
         let range = AddressRange::get(address);
         match range {
-            AddressRange::ROMBank0 | AddressRange::SwitchableROMBank => {
-                match &self.cartridge {
-                    Some(cartridge) => Ok(cartridge.rom[range.normalize(address)]),
-                    None => Err(ReadError::NoCartridge),
-                }
+            AddressRange::ROMBank0 | AddressRange::SwitchableROMBank => match &self.cartridge {
+                Some(cartridge) => Ok(cartridge.rom[range.normalize(address)]),
+                None => Err(ReadError::NoCartridge),
             },
-            AddressRange::VideoRAM
-                => Ok(self.vram[range.normalize(address)]),
-            AddressRange::SwitchableRAMBank
-                => Ok(0), // TODO: Implement.
-            AddressRange::InternalRAM | AddressRange::InternalRAMEcho
-                => Ok(self.ram[range.normalize(address)]),
-            AddressRange::SpriteAttributeMemory
-                => Ok(0), // TODO: Implement.
-            AddressRange::Empty
-                => Err(ReadError::InvalidAddress),
-            AddressRange::Io 
-                => Ok(0), // TODO: Implement.
-            AddressRange::InternalRAMUpper 
-                => Ok(0), // TODO: Implement.
-            AddressRange::InterruptEnableRegister 
-                => Ok(0), // TODO: Implement.
+            AddressRange::VideoRAM => Ok(self.vram[range.normalize(address)]),
+            AddressRange::SwitchableRAMBank => Ok(0), // TODO: Implement.
+            AddressRange::InternalRAM | AddressRange::InternalRAMEcho => {
+                Ok(self.ram[range.normalize(address)])
+            },
+            AddressRange::SpriteAttributeMemory => Ok(0), // TODO: Implement.
+            AddressRange::Empty => Err(ReadError::InvalidAddress),
+            AddressRange::Io => Ok(0),               // TODO: Implement.
+            AddressRange::InternalRAMUpper => Ok(0), // TODO: Implement.
+            AddressRange::InterruptEnableRegister => Ok(0), // TODO: Implement.
         }
     }
 
@@ -637,9 +426,9 @@ impl Gameboy {
         let range = AddressRange::get(address);
         match range {
             AddressRange::ROMBank0
-                | AddressRange::SwitchableROMBank
-                | AddressRange::InternalRAMEcho => Err(WriteError::ReadOnly),
-            
+            | AddressRange::SwitchableROMBank
+            | AddressRange::InternalRAMEcho => Err(WriteError::ReadOnly),
+
             AddressRange::VideoRAM => {
                 self.vram[range.normalize(address)] = data;
                 Ok(())
@@ -668,7 +457,7 @@ impl Gameboy {
             AddressRange::InterruptEnableRegister => {
                 // TODO: Implement.
                 Ok(())
-            }
+            },
         }
     }
 }
@@ -739,10 +528,10 @@ impl TickError {
     pub fn recoverable(&self) -> bool {
         match self {
             Self::InvalidOpcode { .. }
-                | Self::MemoryRead { .. }
-                | Self::MemoryWrite { .. }
-                | Self::CartridgeRead { .. } => false,
-            Self::NoCartridge => true, 
+            | Self::MemoryRead { .. }
+            | Self::MemoryWrite { .. }
+            | Self::CartridgeRead { .. } => false,
+            Self::NoCartridge => true,
         }
     }
 
@@ -757,10 +546,14 @@ impl TickError {
 impl fmt::Display for TickError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Error: {}", match self {
-            Self::CartridgeRead { address, error } => format!("Could not read from cartridge at address {:#X}: {}", address, error),
-            Self::InvalidOpcode { opcode, address } => format!("Invalid opcode ({}) at address: {}", opcode, address),
-            Self::MemoryRead { address, error } => format!("Could not read from memory at address {:#X}: {}", address, error),
-            Self::MemoryWrite { address, error } => format!("Could not write to memory at address {:#X}: {}", address, error),
+            Self::CartridgeRead { address, error } =>
+                format!("Could not read from cartridge at address {:#X}: {}", address, error),
+            Self::InvalidOpcode { opcode, address } =>
+                format!("Invalid opcode ({}) at address: {}", opcode, address),
+            Self::MemoryRead { address, error } =>
+                format!("Could not read from memory at address {:#X}: {}", address, error),
+            Self::MemoryWrite { address, error } =>
+                format!("Could not write to memory at address {:#X}: {}", address, error),
             Self::NoCartridge => "No cartridge found!".to_owned(),
         })
     }

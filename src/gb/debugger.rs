@@ -1,6 +1,7 @@
-use crate::Gameboy;
-use super::opcode::Opcode;
 use std::fmt;
+
+use super::opcode::Opcode;
+use crate::Gameboy;
 
 pub struct Debugger {
     pub gameboy: Gameboy,
@@ -20,34 +21,30 @@ impl Debugger {
                     return;
                 }
                 match command.type_ {
-                    DebuggerCommandType::BreakAdd => {
-                        match parse_break_address(&command) {
-                            Ok(address) => {
-                                self.breakpoints.push(Breakpoint::new(address));
-                                println!("Breakpoint added at address: {:#X}", address);
-                            },
-                            Err(error) => println!("{}", error),
-                        }
+                    DebuggerCommandType::BreakAdd => match parse_break_address(&command) {
+                        Ok(address) => {
+                            self.breakpoints.push(Breakpoint::new(address));
+                            println!("Breakpoint added at address: {:#X}", address);
+                        },
+                        Err(error) => println!("{}", error),
                     },
                     DebuggerCommandType::BreakList => {
                         for breakpoint in self.breakpoints.iter() {
                             println!("{:#X}", breakpoint.address);
                         }
                     },
-                    DebuggerCommandType::BreakRemove => {
-                        match parse_break_address(&command) {
-                            Ok(address) => {
-                                for (idx, breakpoint) in self.breakpoints.iter().enumerate() {
-                                    if breakpoint.address == address {
-                                        self.breakpoints.remove(idx);
-                                        println!("Breakpoint removed at address: {:#X}", address);
-                                        return;
-                                    }
+                    DebuggerCommandType::BreakRemove => match parse_break_address(&command) {
+                        Ok(address) => {
+                            for (idx, breakpoint) in self.breakpoints.iter().enumerate() {
+                                if breakpoint.address == address {
+                                    self.breakpoints.remove(idx);
+                                    println!("Breakpoint removed at address: {:#X}", address);
+                                    return;
                                 }
-                                println!("No breakpoint exists at address: {:#X}", address);
-                            },
-                            Err(error) => println!("{}", error),
-                        }
+                            }
+                            println!("No breakpoint exists at address: {:#X}", address);
+                        },
+                        Err(error) => println!("{}", error),
                     },
                     DebuggerCommandType::Continue => {
                         loop {
@@ -81,16 +78,21 @@ impl Debugger {
                     DebuggerCommandType::Next => {
                         let pc = &self.gameboy.cpu.pc;
                         match self.gameboy.try_read(*pc) {
-                            Ok(opcode) => {
-                                match Opcode::parse(opcode) {
-                                    Some(opcode) => {
-                                        match self.gameboy.try_cartridge_read_bytes(*pc, opcode.size() as u16) {
-                                            Ok(instruction) => println!("{:#X}: {:#08X}", pc, instruction),
-                                            Err(error) => println!("Unable to read instruction: {}", error),
-                                        }
-                                    },
-                                    None => println!("Unable to parse opcode: {:#04X}", opcode),
-                                }
+                            Ok(opcode) => match Opcode::parse(opcode) {
+                                Some(opcode) => {
+                                    match self
+                                        .gameboy
+                                        .try_cartridge_read_bytes(*pc, opcode.size() as u16)
+                                    {
+                                        Ok(instruction) => {
+                                            println!("{:#X}: {:#08X}", pc, instruction)
+                                        },
+                                        Err(error) => {
+                                            println!("Unable to read instruction: {}", error)
+                                        },
+                                    }
+                                },
+                                None => println!("Unable to parse opcode: {:#04X}", opcode),
                             },
                             Err(error) => println!("Unable to read opcode: {}", error),
                         }
@@ -106,11 +108,12 @@ impl Debugger {
                         println!("f: {:#X}", cpu.f);
                         println!("h: {:#X}", cpu.h);
                         println!("l: {:#X}", cpu.l);
-                    }
+                    },
                     DebuggerCommandType::Step => {
                         match self.gameboy.tick() {
-                            // Discard the cycle count because we will draw the frame after every instruction anyways.
-                            Ok(_) => (), 
+                            // Discard the cycle count because we will draw the frame after every
+                            // instruction anyways.
+                            Ok(_) => (),
                             Err(error) => error.realize(),
                         }
                     },
@@ -153,16 +156,16 @@ impl DebuggerCommand {
     fn from(command: &str) -> Option<Self> {
         let tokens: Vec<String> = command.split(' ').map(|s| String::from(s)).collect();
         let type_ = match tokens[0].as_str() {
-            "break-add"    => Some(DebuggerCommandType::BreakAdd),
-            "break-list"   => Some(DebuggerCommandType::BreakList),
+            "break-add" => Some(DebuggerCommandType::BreakAdd),
+            "break-list" => Some(DebuggerCommandType::BreakList),
             "break-remove" => Some(DebuggerCommandType::BreakRemove),
-            "continue"     => Some(DebuggerCommandType::Continue),
-            "exit"         => Some(DebuggerCommandType::Exit),
-            "help"         => Some(DebuggerCommandType::Help),
-            "next"         => Some(DebuggerCommandType::Next),
-            "registers"    => Some(DebuggerCommandType::Registers),
-            "step"         => Some(DebuggerCommandType::Step),
-            _              => None,
+            "continue" => Some(DebuggerCommandType::Continue),
+            "exit" => Some(DebuggerCommandType::Exit),
+            "help" => Some(DebuggerCommandType::Help),
+            "next" => Some(DebuggerCommandType::Next),
+            "registers" => Some(DebuggerCommandType::Registers),
+            "step" => Some(DebuggerCommandType::Step),
+            _ => None,
         };
         match type_ {
             Some(type_) => Some(Self { tokens, type_ }),
@@ -171,44 +174,45 @@ impl DebuggerCommand {
     }
 
     fn valid_structure(&self) -> bool {
-        self.tokens.len() == match self.type_ {
-            DebuggerCommandType::BreakAdd
-                | DebuggerCommandType::BreakRemove => 2,
-            DebuggerCommandType::BreakList
+        self.tokens.len()
+            == match self.type_ {
+                DebuggerCommandType::BreakAdd | DebuggerCommandType::BreakRemove => 2,
+                DebuggerCommandType::BreakList
                 | DebuggerCommandType::Continue
                 | DebuggerCommandType::Exit
                 | DebuggerCommandType::Help
                 | DebuggerCommandType::Next
                 | DebuggerCommandType::Registers
-                | DebuggerCommandType::Step        => 1,
-        }
+                | DebuggerCommandType::Step => 1,
+            }
     }
 
     fn usage(&self) -> String {
         let arguments = match self.type_ {
-            DebuggerCommandType::BreakAdd
-                | DebuggerCommandType::BreakRemove => Some("<address (ex: 0x1000)>"),
-            _ => None
+            DebuggerCommandType::BreakAdd | DebuggerCommandType::BreakRemove => {
+                Some("<address (ex: 0x1000)>")
+            },
+            _ => None,
         };
         match arguments {
             Some(arguments) => format!("Usage: {} {}", self.type_, arguments),
             None => format!("Usage: {}", self.type_),
-        }   
+        }
     }
 }
 
 impl fmt::Display for DebuggerCommandType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
-            Self::BreakAdd    => "break-add",
-            Self::BreakList   => "break-list",
+            Self::BreakAdd => "break-add",
+            Self::BreakList => "break-list",
             Self::BreakRemove => "break-remove",
-            Self::Continue    => "continue",
-            Self::Exit        => "exit",
-            Self::Help        => "help",
-            Self::Next        => "next",
-            Self::Registers   => "registers",
-            Self::Step        => "step",
+            Self::Continue => "continue",
+            Self::Exit => "exit",
+            Self::Help => "help",
+            Self::Next => "next",
+            Self::Registers => "registers",
+            Self::Step => "step",
         })
     }
 }
@@ -223,7 +227,8 @@ impl Breakpoint {
     }
 }
 
-// This function is simply for parsing the break-add and break-remove commands, as they share a common structure (break-[add|remove] <address (hex)>).
+// This function is simply for parsing the break-add and break-remove commands,
+// as they share a common structure (break-[add|remove] <address (hex)>).
 fn parse_break_address(command: &DebuggerCommand) -> Result<u16, ParseBreakAddressError> {
     if command.tokens.len() != 2 || command.tokens[1].len() < 3 || &command.tokens[1][..2] != "0x" {
         return Err(ParseBreakAddressError::BadUsage { command: command.clone() });
@@ -236,7 +241,7 @@ fn parse_break_address(command: &DebuggerCommand) -> Result<u16, ParseBreakAddre
 
 enum ParseBreakAddressError {
     BadUsage { command: DebuggerCommand },
-    BadParse { error: std::num::ParseIntError }
+    BadParse { error: std::num::ParseIntError },
 }
 
 impl fmt::Display for ParseBreakAddressError {

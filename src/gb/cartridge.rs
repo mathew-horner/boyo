@@ -12,7 +12,8 @@ impl Cartridge {
     }
 
     pub fn read_bytes(&self, address: u16, count: u16) -> Result<u32, CartridgeReadError> {
-        // TODO: This might be unnecessary because we statically define all opcode sizes and none will be greater than 4.
+        // TODO: This might be unnecessary because we statically define all opcode sizes
+        // and none will be greater than 4.
         if count > MAX_READ_BYTES {
             return Err(CartridgeReadError::CountTooHigh { count });
         }
@@ -37,7 +38,8 @@ pub enum CartridgeReadError {
 impl fmt::Display for CartridgeReadError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match self {
-            Self::CountTooHigh { count } => format!("Tried to read too many bytes at once! ({})", count),
+            Self::CountTooHigh { count } =>
+                format!("Tried to read too many bytes at once! ({})", count),
             Self::OutOfBounds => "Tried to read from address that is out of bounds!".to_string(),
         })
     }
