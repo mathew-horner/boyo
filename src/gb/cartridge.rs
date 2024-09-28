@@ -1,4 +1,4 @@
-use std::fmt;
+use std::path::Path;
 
 pub struct Cartridge {
     pub rom: Vec<u8>,
@@ -7,7 +7,7 @@ pub struct Cartridge {
 const MAX_READ_BYTES: u16 = 4;
 
 impl Cartridge {
-    pub fn from(path: &str) -> Result<Self, std::io::Error> {
+    pub fn from<P: AsRef<Path>>(path: P) -> Result<Self, std::io::Error> {
         Ok(Self { rom: std::fs::read(path)? })
     }
 
@@ -29,18 +29,10 @@ impl Cartridge {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum CartridgeReadError {
+    #[error("tried to read too many bytes at once ({count})")]
     CountTooHigh { count: u16 },
+    #[error("tried to read from an address that is out of bounds")]
     OutOfBounds,
-}
-
-impl fmt::Display for CartridgeReadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::CountTooHigh { count } =>
-                format!("Tried to read too many bytes at once! ({})", count),
-            Self::OutOfBounds => "Tried to read from address that is out of bounds!".to_string(),
-        })
-    }
 }
