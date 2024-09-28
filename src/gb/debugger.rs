@@ -1,34 +1,32 @@
+use indexmap::IndexSet;
+
 use super::opcode::Opcode;
 use crate::gb::cpu::Register;
 use crate::Gameboy;
 
-struct Breakpoint {
-    address: u16,
-}
-
 pub struct Debugger {
     gameboy: Gameboy,
-    breakpoints: Vec<Breakpoint>,
+    breakpoints: IndexSet<u16>,
 }
 
 impl Debugger {
     pub fn new(gameboy: Gameboy) -> Self {
-        Self { gameboy, breakpoints: Vec::new() }
+        Self { gameboy, breakpoints: IndexSet::new() }
     }
 
     pub fn invoke_command(&mut self, command: &str) {
         match Command::parse(command) {
             Ok(Command::BreakAdd(address)) => {
-                self.breakpoints.push(Breakpoint { address });
+                self.breakpoints.insert(address);
                 println!("breakpoint added @ {address:#X}");
             },
             Ok(Command::BreakRemove(address)) => {
-                self.breakpoints.retain(|breakpoint| breakpoint.address != address);
+                self.breakpoints.retain(|bp| *bp != address);
                 println!("breakpoint(s) removed @ {address:#X}");
             },
             Ok(Command::BreakList) => {
-                for breakpoint in &self.breakpoints {
-                    println!("{:#X}", breakpoint.address);
+                for bp in &self.breakpoints {
+                    println!("{bp:#X}");
                 }
             },
             Ok(Command::Continue) => {
@@ -102,7 +100,7 @@ impl Debugger {
     }
 
     fn should_break(&self) -> bool {
-        self.breakpoints.iter().any(|bp| bp.address == self.gameboy.cpu.pc)
+        self.breakpoints.contains(&self.gameboy.cpu.pc)
     }
 }
 
