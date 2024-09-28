@@ -43,22 +43,24 @@ impl Debugger {
             },
             Ok(Command::Exit) => std::process::exit(0),
             Ok(Command::Help) => {
-                // TODO: Derive usage strings and descriptions from Command.
-                println!("---------------");
-                println!(" Boyo Debugger");
-                println!("---------------\n");
-                println!("Commands");
                 println!(
-                    "* break-add <address> - Adds a new breakpoint at the given (hex) address."
+                    "{}",
+                    &r#"
+-------------
+Boyo Debugger
+-------------
+Commands
+* break-add <address> - Adds a new breakpoint at the given (hex) address.
+* break-list - Shows all the currently active breakpoints.
+* break-remove <address> - Removes an existing breakpoint at the given (hex) address, if it exists.
+* continue - Begins execution until a breakpoint is hit.
+* exit - Exits the program.
+* help - How you got here.
+* next - Displays the next instruction to be executed.
+* registers - Displays the contents of all cpu registers.
+* step - Executes a single instruction.
+"#[1..]
                 );
-                println!("* break-list - Shows all the currently active breakpoints.");
-                println!("* break-remove <address> - Removes an existing breakpoint at the given (hex) address, if it exists.");
-                println!("* continue - Begins execution until a breakpoint is hit.");
-                println!("* exit - Exits the program.");
-                println!("* help - How you got here.");
-                println!("* next - Displays the next instruction to be executed.");
-                println!("* registers - Displays the contents of all cpu registers.");
-                println!("* step - Executes a single instruction.\n");
             },
             Ok(Command::Next) => {
                 // TODO: Clean this up.
