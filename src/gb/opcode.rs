@@ -59,13 +59,14 @@ const OPCODE_BASE_CYCLE_MAP: [[u8; 16]; 16] = [
 	[12, 12, 8,  4,  0,  16, 8,  16, 12, 8,  16, 4, 0,  0,  8, 16],
 ];
 
+#[derive(Debug)]
 pub struct Opcode {
     pub data: u8,
     pub type_: OpcodeType,
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum OpcodeType {
     NOP,
     LD_BC_d16,

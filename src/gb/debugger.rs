@@ -72,7 +72,13 @@ Commands
                         Some(opcode) => {
                             match self.gameboy.try_cartridge_read_bytes(*pc, opcode.size() as u16) {
                                 Ok(instruction) => {
-                                    print(format!("{pc:#X}: {instruction:#08X}"));
+                                    print_many(
+                                        [
+                                            format!("{opcode:?}"),
+                                            format!("{pc:#X}: {instruction:#08X}"),
+                                        ]
+                                        .iter(),
+                                    );
                                 },
                                 Err(error) => {
                                     print(format!("Unable to read instruction: {error}",));
