@@ -111,6 +111,7 @@ Commands
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 enum Command {
     BreakAdd(u16),
     BreakList,
@@ -181,4 +182,22 @@ where
         println!("{}", message.as_ref().trim());
     }
     println!();
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parse_breakpoint_commands() {
+        assert_eq!(Command::parse("break-add 0xFFFF").unwrap(), Command::BreakAdd(0xFFFF));
+        assert_eq!(Command::parse("break-add FFFF").unwrap(), Command::BreakAdd(0xFFFF));
+        assert_eq!(Command::parse("break-add 0x0").unwrap(), Command::BreakAdd(0));
+        assert_eq!(Command::parse("break-add 0").unwrap(), Command::BreakAdd(0));
+
+        assert_eq!(Command::parse("break-remove 0xFFFF").unwrap(), Command::BreakRemove(0xFFFF));
+        assert_eq!(Command::parse("break-remove FFFF").unwrap(), Command::BreakRemove(0xFFFF));
+        assert_eq!(Command::parse("break-remove 0x0").unwrap(), Command::BreakRemove(0));
+        assert_eq!(Command::parse("break-remove 0").unwrap(), Command::BreakRemove(0));
+    }
 }
