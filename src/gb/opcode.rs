@@ -316,7 +316,7 @@ pub enum OpcodeType {
 
 impl Opcode {
     pub fn parse(data: u8) -> Option<Self> {
-        let (row, col) = Self::get_indices(data);
+        let (row, col) = get_indices(data);
         match &OPCODE_MAP[row][col] {
             Some(type_) => Some(Self { data, type_: type_.clone() }),
             None => None,
@@ -324,16 +324,16 @@ impl Opcode {
     }
 
     pub fn size(&self) -> u8 {
-        let (row, col) = Self::get_indices(self.data);
+        let (row, col) = get_indices(self.data);
         OPCODE_BYTE_COUNT_MAP[row][col]
     }
 
     pub fn base_cycles(&self) -> u8 {
-        let (row, col) = Self::get_indices(self.data);
+        let (row, col) = get_indices(self.data);
         OPCODE_BASE_CYCLE_MAP[row][col]
     }
+}
 
-    fn get_indices(opcode: u8) -> (usize, usize) {
-        ((opcode >> 4) as usize, (opcode & 0xF) as usize)
-    }
+fn get_indices(opcode: u8) -> (usize, usize) {
+    ((opcode >> 4) as usize, (opcode & 0xF) as usize)
 }
