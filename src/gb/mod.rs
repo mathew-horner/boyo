@@ -90,14 +90,14 @@ impl Gameboy {
         };
         // TODO: avoid re-reading memory here, but it's the simplest solution atm.
         let instruction = self.try_cartridge_read_bytes(self.cpu.pc, opcode.size() as u16)?;
-        if !self.execute(&opcode, instruction as u16)? {
+        if !self.execute(&opcode, instruction)? {
             self.cpu.pc += opcode.size() as u16;
         }
         Ok(opcode.base_cycles())
     }
 
     // TODO: Find a way to combine opcode & instruction for brevity?
-    fn execute(&mut self, opcode: &Opcode, instruction: u16) -> Result<bool, TickError> {
+    fn execute(&mut self, opcode: &Opcode, instruction: u32) -> Result<bool, TickError> {
         let mut skip_pc = false;
         match opcode.type_ {
             OpcodeType::NOP => (),
@@ -363,7 +363,7 @@ impl Gameboy {
             OpcodeType::POP_BC => {},
             OpcodeType::JP_NZ_a16 => {},
             OpcodeType::JP_a16 => {
-                self.cpu.pc = (instruction & 0xFFFF) as u16;
+                self.cpu.pc = u16::from_be((instruction & 0xFFFF) as u16);
                 skip_pc = true;
             },
             OpcodeType::CALL_NZ_a16 => {},
