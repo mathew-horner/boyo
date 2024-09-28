@@ -2,6 +2,10 @@ use super::opcode::Opcode;
 use crate::gb::cpu::Register;
 use crate::Gameboy;
 
+struct Breakpoint {
+    address: u16,
+}
+
 pub struct Debugger {
     gameboy: Gameboy,
     breakpoints: Vec<Breakpoint>,
@@ -152,8 +156,4 @@ impl Command {
 
 fn parse_address(address: &str) -> Result<u16, CommandParseError<'_>> {
     u16::from_str_radix(address, 16).map_err(|_| CommandParseError::InvalidBreakpointAddress)
-}
-
-struct Breakpoint {
-    address: u16,
 }
