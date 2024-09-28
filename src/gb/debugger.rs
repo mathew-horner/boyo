@@ -1,4 +1,5 @@
 use super::opcode::Opcode;
+use crate::gb::cpu::Register;
 use crate::Gameboy;
 
 pub struct Debugger {
@@ -78,16 +79,9 @@ impl Debugger {
                 }
             },
             Ok(Command::Registers) => {
-                // TODO: Use an iterator?
-                let cpu = &self.gameboy.cpu;
-                println!("a: {:#X}", cpu.a);
-                println!("b: {:#X}", cpu.b);
-                println!("c: {:#X}", cpu.c);
-                println!("d: {:#X}", cpu.d);
-                println!("e: {:#X}", cpu.e);
-                println!("f: {:#X}", cpu.f);
-                println!("h: {:#X}", cpu.h);
-                println!("l: {:#X}", cpu.l);
+                for Register { name, value } in self.gameboy.cpu.registers() {
+                    println!("{name}: {value:#X}");
+                }
             },
             Ok(Command::Step) => {
                 match self.gameboy.tick() {

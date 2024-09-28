@@ -57,4 +57,38 @@ impl LR35902 {
     fn combine_bytes(upper: u8, lower: u8) -> u16 {
         ((upper as u16) << 8) | lower as u16
     }
+
+    pub fn registers<'a>(&'a self) -> Registers<'a> {
+        Registers { cpu: self, idx: 0 }
+    }
+}
+
+pub struct Registers<'a> {
+    cpu: &'a LR35902,
+    idx: usize,
+}
+
+impl<'a> Iterator for Registers<'a> {
+    type Item = Register;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let register = match self.idx {
+            0 => Register { name: "a", value: self.cpu.a },
+            1 => Register { name: "b", value: self.cpu.b },
+            2 => Register { name: "c", value: self.cpu.c },
+            3 => Register { name: "d", value: self.cpu.d },
+            4 => Register { name: "e", value: self.cpu.e },
+            5 => Register { name: "f", value: self.cpu.f },
+            6 => Register { name: "h", value: self.cpu.h },
+            7 => Register { name: "l", value: self.cpu.l },
+            _ => return None,
+        };
+        self.idx += 1;
+        Some(register)
+    }
+}
+
+pub struct Register {
+    pub name: &'static str,
+    pub value: u8,
 }
