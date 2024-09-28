@@ -4,7 +4,7 @@ use super::opcode::Opcode;
 use crate::Gameboy;
 
 pub struct Debugger {
-    pub gameboy: Gameboy,
+    gameboy: Gameboy,
     breakpoints: Vec<Breakpoint>,
 }
 

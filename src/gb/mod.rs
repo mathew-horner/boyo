@@ -2,7 +2,6 @@ mod cartridge;
 mod cpu;
 mod debugger;
 mod opcode;
-use std::fmt;
 
 pub use cartridge::Cartridge;
 use cartridge::CartridgeReadError;
@@ -11,6 +10,55 @@ pub use debugger::Debugger;
 use opcode::{Opcode, OpcodeType};
 
 const _8KB: usize = 8192;
+
+#[derive(Debug, thiserror::Error)]
+pub enum TickError {
+    #[error("could not read from cartridge at address {address:#X}: {error}")]
+    CartridgeRead { address: u16, error: CartridgeReadError },
+    #[error("invalid opcode {opcode} at address {address}")]
+    InvalidOpcode { opcode: u8, address: u16 },
+    #[error("could not read from memory at address {address:#X}: {error}")]
+    MemoryRead { address: u16, error: ReadError },
+    #[error("could not write to memory at address {address:#X}: {error}")]
+    MemoryWrite { address: u16, error: WriteError },
+    #[error("no cartridge inserted")]
+    NoCartridge,
+}
+
+impl TickError {
+    pub fn recoverable(&self) -> bool {
+        match self {
+            Self::InvalidOpcode { .. }
+            | Self::MemoryRead { .. }
+            | Self::MemoryWrite { .. }
+            | Self::CartridgeRead { .. } => false,
+            Self::NoCartridge => true,
+        }
+    }
+
+    pub fn realize(&self) {
+        println!("{}", self);
+        if !self.recoverable() {
+            std::process::exit(0);
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ReadError {
+    #[error("invalid address")]
+    InvalidAddress,
+    #[error("no cartridge inserted")]
+    NoCartridge,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WriteError {
+    #[error("invalid address")]
+    InvalidAddress,
+    #[error("tried to write to read-only memory")]
+    ReadOnly,
+}
 
 pub struct Gameboy {
     pub cartridge: Option<Cartridge>,
@@ -35,12 +83,12 @@ impl Gameboy {
         }
         let opcode = self.try_cartridge_read_bytes(self.cpu.pc, 1)? as u8;
         let opcode = match Opcode::parse(opcode) {
-            Some(op) => op,
+            Some(opcode) => opcode,
             None => {
                 return Err(TickError::InvalidOpcode { opcode, address: self.cpu.pc });
             },
         };
-        // TODO-PERF: avoid re-reading memory here, but it's the simplest solution atm.
+        // TODO: avoid re-reading memory here, but it's the simplest solution atm.
         let instruction = self.try_cartridge_read_bytes(self.cpu.pc, opcode.size() as u16)?;
         if !self.execute(&opcode, instruction as u16)? {
             self.cpu.pc += opcode.size() as u16;
@@ -48,7 +96,7 @@ impl Gameboy {
         Ok(opcode.base_cycles())
     }
 
-    // TODO-CQ: Find a way to combine opcode & instruction for brevity?
+    // TODO: Find a way to combine opcode & instruction for brevity?
     fn execute(&mut self, opcode: &Opcode, instruction: u16) -> Result<bool, TickError> {
         let mut skip_pc = false;
         match opcode.type_ {
@@ -380,7 +428,7 @@ impl Gameboy {
     }
 
     fn try_cartridge_read_bytes(&self, address: u16, count: u16) -> Result<u32, TickError> {
-        // TODO-PERF: check if as_ref() has a large amount of overhead?
+        // TODO: check if as_ref() has a large amount of overhead?
         let cartridge = self.cartridge.as_ref().unwrap();
         match cartridge.read_bytes(address, count) {
             Ok(value) => Ok(value),
@@ -512,79 +560,5 @@ impl AddressRange {
             _ => 0x0000,
         };
         return (address - base) as usize;
-    }
-}
-
-#[derive(Debug)]
-pub enum TickError {
-    CartridgeRead { address: u16, error: CartridgeReadError },
-    InvalidOpcode { opcode: u8, address: u16 },
-    MemoryRead { address: u16, error: ReadError },
-    MemoryWrite { address: u16, error: WriteError },
-    NoCartridge,
-}
-
-impl TickError {
-    pub fn recoverable(&self) -> bool {
-        match self {
-            Self::InvalidOpcode { .. }
-            | Self::MemoryRead { .. }
-            | Self::MemoryWrite { .. }
-            | Self::CartridgeRead { .. } => false,
-            Self::NoCartridge => true,
-        }
-    }
-
-    pub fn realize(&self) {
-        println!("{}", self);
-        if !self.recoverable() {
-            std::process::exit(0);
-        }
-    }
-}
-
-impl fmt::Display for TickError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Error: {}", match self {
-            Self::CartridgeRead { address, error } =>
-                format!("Could not read from cartridge at address {:#X}: {}", address, error),
-            Self::InvalidOpcode { opcode, address } =>
-                format!("Invalid opcode ({}) at address: {}", opcode, address),
-            Self::MemoryRead { address, error } =>
-                format!("Could not read from memory at address {:#X}: {}", address, error),
-            Self::MemoryWrite { address, error } =>
-                format!("Could not write to memory at address {:#X}: {}", address, error),
-            Self::NoCartridge => "No cartridge found!".to_owned(),
-        })
-    }
-}
-
-#[derive(Debug)]
-pub enum ReadError {
-    InvalidAddress,
-    NoCartridge,
-}
-
-impl fmt::Display for ReadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::InvalidAddress => "Invalid address",
-            Self::NoCartridge => "No cartridge inserted",
-        })
-    }
-}
-
-#[derive(Debug)]
-pub enum WriteError {
-    InvalidAddress,
-    ReadOnly,
-}
-
-impl fmt::Display for WriteError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match self {
-            Self::InvalidAddress => "Invalid address",
-            Self::ReadOnly => "Tried to write to read-only memory",
-        })
     }
 }
