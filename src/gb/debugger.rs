@@ -1,11 +1,14 @@
+use std::collections::vec_deque::{self, VecDeque};
+
 use indexmap::IndexSet;
 
-use super::opcode::Opcode;
 use crate::gb::cpu::Register;
+use crate::gb::opcode::Opcode;
 use crate::Gameboy;
 
 pub struct Debugger {
     gameboy: Gameboy,
+    command_history: CommandHistory,
 
     // An IndexSet is used to preserve order, so "break-list" doesn't show breakpoints in an
     // arbitrary and inconsistent order.
@@ -14,7 +17,7 @@ pub struct Debugger {
 
 impl Debugger {
     pub fn new(gameboy: Gameboy) -> Self {
-        Self { gameboy, breakpoints: IndexSet::new() }
+        Self { gameboy, command_history: CommandHistory::new(10), breakpoints: IndexSet::new() }
     }
 
     pub fn invoke_command(&mut self, command: &str) {
@@ -64,6 +67,9 @@ Commands
 "#,
                 );
             },
+            Ok(Command::History) => {
+                print_many(self.command_history.iter());
+            },
             Ok(Command::Next) => {
                 // TODO: Clean this up.
                 let pc = &self.gameboy.cpu.pc;
@@ -110,6 +116,7 @@ Commands
                 print(error.to_string());
             },
         }
+        self.command_history.push(command.to_owned());
     }
 
     fn should_break(&self) -> bool {
@@ -125,6 +132,7 @@ enum Command {
     Continue,
     Exit,
     Help,
+    History,
     Next,
     Registers,
     Step,
@@ -156,14 +164,15 @@ impl Command {
             "continue" if tokens.len() == 1 => Ok(Command::Continue),
             "exit" if tokens.len() == 1 => Ok(Command::Exit),
             "help" if tokens.len() == 1 => Ok(Command::Help),
+            "history" if tokens.len() == 1 => Ok(Command::History),
             "next" if tokens.len() == 1 => Ok(Command::Next),
             "registers" if tokens.len() == 1 => Ok(Command::Registers),
             "step" if tokens.len() == 1 => Ok(Command::Step),
 
             // Valid commands should be enumerated here as a fall-through case in scenarios where an
             // invalid number of tokens are provided.
-            "break-add" | "break-remove" | "break-list" | "continue" | "exit" | "help" | "next"
-            | "registers" | "step" => Err(CommandParseError::InvalidFormat),
+            "break-add" | "break-remove" | "break-list" | "continue" | "exit" | "help"
+            | "history" | "next" | "registers" | "step" => Err(CommandParseError::InvalidFormat),
 
             other => Err(CommandParseError::InvalidCommand(other)),
         }
@@ -189,6 +198,34 @@ where
     }
     println!();
 }
+struct CommandHistory {
+    queue: VecDeque<String>,
+    size: usize,
+}
+
+impl CommandHistory {
+    fn new(size: usize) -> Self {
+        Self { queue: VecDeque::with_capacity(size), size }
+    }
+
+    fn push(&mut self, value: impl Into<String>) {
+        let value = value.into();
+        if value == "history" || self.queue.back().map(|back| back == &value).unwrap_or(false) {
+            return;
+        }
+
+        // Pop first so we only ever need to have space for N items allocated.
+        if self.queue.len() == self.size {
+            self.queue.pop_front();
+        }
+
+        self.queue.push_back(value);
+    }
+
+    fn iter<'a>(&'a self) -> vec_deque::Iter<'a, String> {
+        self.queue.iter()
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -205,5 +242,24 @@ mod test {
         assert_eq!(Command::parse("break-remove FFFF").unwrap(), Command::BreakRemove(0xFFFF));
         assert_eq!(Command::parse("break-remove 0x0").unwrap(), Command::BreakRemove(0));
         assert_eq!(Command::parse("break-remove 0").unwrap(), Command::BreakRemove(0));
+    }
+
+    #[test]
+    fn command_history() {
+        const SIZE: usize = 5;
+
+        let mut history = CommandHistory::new(SIZE);
+        for i in 0..SIZE + 1 {
+            history.push(format!("command-{}", i + 1));
+        }
+
+        // "history" should not be pushed
+        history.push("history");
+
+        // Repeat value should not be pushed
+        history.push("command-6");
+
+        let values: Vec<_> = history.iter().map(String::as_str).collect();
+        assert_eq!(&values, &["command-2", "command-3", "command-4", "command-5", "command-6"]);
     }
 }
