@@ -122,6 +122,14 @@ Commands
     fn should_break(&self) -> bool {
         self.breakpoints.contains(&self.gameboy.cpu.pc)
     }
+
+    pub fn history_entry<'a>(&'a self, idx: usize) -> Option<&'a str> {
+        self.command_history.queue.get(self.history_len() - 1 - idx).map(String::as_str)
+    }
+
+    pub fn history_len(&self) -> usize {
+        self.command_history.queue.len()
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
