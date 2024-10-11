@@ -1,4 +1,5 @@
 mod gb;
+mod gb_pca;
 
 use std::io::{self, Write};
 use std::thread::sleep;
