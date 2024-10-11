@@ -66,7 +66,7 @@ impl Gameboy {
         }
     }
 
-    pub fn cycle(&mut self) {
+    fn cycle(&mut self) {
         let byte = self.rom[self.pc as usize];
         self.pc += 1;
 
@@ -142,7 +142,7 @@ impl Gameboy {
         }
     }
 
-    pub fn registers<'a>(&'a self) -> Registers<'a> {
+    fn registers<'a>(&'a self) -> Registers<'a> {
         Registers { gb: self, idx: 0 }
     }
 
@@ -193,7 +193,7 @@ enum Register16 {
     HL,
 }
 
-pub struct Registers<'a> {
+struct Registers<'a> {
     gb: &'a Gameboy,
     idx: usize,
 }
@@ -218,9 +218,9 @@ impl<'a> Iterator for Registers<'a> {
     }
 }
 
-pub struct Register {
-    pub name: &'static str,
-    pub value: u8,
+struct Register {
+    name: &'static str,
+    value: u8,
 }
 
 #[allow(non_camel_case_types)]
@@ -418,7 +418,7 @@ impl Debugger {
         Self { gameboy, command_history: CommandHistory::new(10), breakpoints: IndexSet::new() }
     }
 
-    pub fn invoke_command(&mut self, command: &str) {
+    fn invoke_command(&mut self, command: &str) {
         match Command::parse(command) {
             Ok(Command::BreakAdd(address)) => {
                 self.breakpoints.insert(address);
@@ -486,11 +486,11 @@ Commands
         self.breakpoints.contains(&self.gameboy.pc)
     }
 
-    pub fn history_entry<'a>(&'a self, idx: usize) -> Option<&'a str> {
+    fn history_entry<'a>(&'a self, idx: usize) -> Option<&'a str> {
         self.command_history.queue.get(self.history_len() - 1 - idx).map(String::as_str)
     }
 
-    pub fn history_len(&self) -> usize {
+    fn history_len(&self) -> usize {
         self.command_history.queue.len()
     }
 }
