@@ -1,3 +1,11 @@
+use std::collections::{vec_deque, VecDeque};
+use std::io::{self, Write};
+use std::thread::sleep;
+use std::time::{Duration, Instant};
+
+use console::Term;
+use indexmap::IndexSet;
+
 const INITIAL_PC: u16 = 0x0100;
 const INITIAL_SP: u16 = 0xFFFE;
 
@@ -19,7 +27,12 @@ pub struct Gameboy {
 }
 
 impl Gameboy {
-    pub fn new() -> Self {
+    #[cfg(test)]
+    fn no_cartridge() -> Self {
+        Self::new(Vec::new())
+    }
+
+    pub fn new(rom: Vec<u8>) -> Self {
         Self {
             pc: INITIAL_PC,
             sp: INITIAL_SP,
@@ -31,12 +44,27 @@ impl Gameboy {
             f: 0,
             h: 0,
             l: 0,
-            rom: Vec::new(),
+            rom,
             instruction_state: InstructionState::default(),
         }
     }
 
-    pub fn execute(self) {}
+    pub fn execute(mut self) {
+        const CYCLES_PER_FRAME: u32 = 69905;
+        const REFRESH_RATE: f64 = 60.0;
+
+        let frame_duration = Duration::from_secs_f64(1.0 / REFRESH_RATE);
+
+        loop {
+            let start = Instant::now();
+            for _ in 0..CYCLES_PER_FRAME {
+                self.cycle();
+            }
+            // TODO: Actually draw frame.
+            println!("Draw frame");
+            sleep(frame_duration.checked_sub(start.elapsed()).unwrap_or(Duration::ZERO));
+        }
+    }
 
     pub fn cycle(&mut self) {
         let byte = self.rom[self.pc as usize];
@@ -114,6 +142,10 @@ impl Gameboy {
         }
     }
 
+    pub fn registers<'a>(&'a self) -> Registers<'a> {
+        Registers { gb: self, idx: 0 }
+    }
+
     // TODO: Implement memory I/O.
 
     fn read_memory(&self, address: u16) -> u8 {
@@ -159,6 +191,36 @@ enum Register16 {
     BC,
     DE,
     HL,
+}
+
+pub struct Registers<'a> {
+    gb: &'a Gameboy,
+    idx: usize,
+}
+
+impl<'a> Iterator for Registers<'a> {
+    type Item = Register;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let register = match self.idx {
+            0 => Register { name: "a", value: self.gb.a },
+            1 => Register { name: "b", value: self.gb.b },
+            2 => Register { name: "c", value: self.gb.c },
+            3 => Register { name: "d", value: self.gb.d },
+            4 => Register { name: "e", value: self.gb.e },
+            5 => Register { name: "f", value: self.gb.f },
+            6 => Register { name: "h", value: self.gb.h },
+            7 => Register { name: "l", value: self.gb.l },
+            _ => return None,
+        };
+        self.idx += 1;
+        Some(register)
+    }
+}
+
+pub struct Register {
+    pub name: &'static str,
+    pub value: u8,
 }
 
 #[allow(non_camel_case_types)]
@@ -342,13 +404,269 @@ impl Instruction {
     }
 }
 
+pub struct Debugger {
+    gameboy: Gameboy,
+    command_history: CommandHistory,
+
+    // An IndexSet is used to preserve order, so "break-list" doesn't show breakpoints in an
+    // arbitrary and inconsistent order.
+    breakpoints: IndexSet<u16>,
+}
+
+impl Debugger {
+    pub fn new(gameboy: Gameboy) -> Self {
+        Self { gameboy, command_history: CommandHistory::new(10), breakpoints: IndexSet::new() }
+    }
+
+    pub fn invoke_command(&mut self, command: &str) {
+        match Command::parse(command) {
+            Ok(Command::BreakAdd(address)) => {
+                self.breakpoints.insert(address);
+                print(format!("breakpoint added @ {address:#X}"));
+            },
+            Ok(Command::BreakRemove(address)) => {
+                self.breakpoints.retain(|bp| *bp != address);
+                print(format!("breakpoint(s) removed @ {address:#X}"));
+            },
+            Ok(Command::BreakList) => {
+                print_many(self.breakpoints.iter().map(|bp| format!("{bp:#X}")));
+            },
+            Ok(Command::Continue) => loop {
+                self.gameboy.cycle();
+                if self.should_break() {
+                    break;
+                }
+            },
+            Ok(Command::Exit) => std::process::exit(0),
+            Ok(Command::Help) => {
+                // This strange syntax is to make it so the raw string literal prints without a
+                // leading empty line (hence the [1..]) at the end.
+                print(
+                    r#"
+-------------
+Boyo Debugger
+-------------
+Commands
+* break-add <address> - Adds a new breakpoint at the given (hex) address.
+* break-list - Shows all the currently active breakpoints.
+* break-remove <address> - Removes an existing breakpoint at the given (hex) address, if it exists.
+* continue - Begins execution until a breakpoint is hit.
+* exit - Exits the program.
+* help - How you got here.
+* next - Displays the next instruction to be executed.
+* registers - Displays the contents of all cpu registers.
+* step - Executes a single instruction.
+"#,
+                );
+            },
+            Ok(Command::History) => {
+                print_many(self.command_history.iter());
+            },
+            Ok(Command::Next) => {
+                todo!("next command was easy to implement with the non cycle based emulator, but will take some work here");
+            },
+            Ok(Command::Registers) => {
+                print_many(
+                    self.gameboy
+                        .registers()
+                        .map(|Register { name, value }| format!("{name}: {value:#X}")),
+                );
+            },
+            Ok(Command::Step) => {
+                self.gameboy.cycle();
+            },
+            Err(error) => {
+                print(error.to_string());
+            },
+        }
+        self.command_history.push(command.to_owned());
+    }
+
+    fn should_break(&self) -> bool {
+        self.breakpoints.contains(&self.gameboy.pc)
+    }
+
+    pub fn history_entry<'a>(&'a self, idx: usize) -> Option<&'a str> {
+        self.command_history.queue.get(self.history_len() - 1 - idx).map(String::as_str)
+    }
+
+    pub fn history_len(&self) -> usize {
+        self.command_history.queue.len()
+    }
+}
+
+pub fn run_terminal_debugger(mut debugger: Debugger) {
+    let term = Term::stdout();
+    loop {
+        print!("> ");
+        let _ = io::stdout().flush();
+        let mut command = String::new();
+
+        // history_idx = 0 refers to the command buffer. history_idx = 1.. refers to
+        // history @ history_idx - 1.
+        let mut history_idx: usize = 0;
+
+        loop {
+            match term.read_key().unwrap() {
+                console::Key::Enter => {
+                    println!();
+                    break;
+                },
+                console::Key::Backspace => {
+                    let _ = command.pop();
+                    term.clear_chars(1).unwrap();
+                },
+                console::Key::ArrowUp if history_idx < debugger.history_len() => {
+                    history_idx += 1;
+                    update_command_display(&debugger, &term, history_idx, &command);
+                },
+                console::Key::ArrowDown if history_idx > 0 => {
+                    history_idx -= 1;
+                    update_command_display(&debugger, &term, history_idx, &command);
+                },
+                console::Key::Char(char) => {
+                    print!("{char}");
+                    io::stdout().flush().unwrap();
+                    command.push(char);
+                },
+                _ => {},
+            };
+        }
+
+        // TODO: Make it so we don't have to clone here...
+        let command = match history_idx {
+            0 => command.trim().to_owned(),
+            idx => debugger.history_entry(idx - 1).unwrap().to_owned(),
+        };
+
+        debugger.invoke_command(&command);
+    }
+}
+
+fn update_command_display(debugger: &Debugger, term: &Term, history_idx: usize, command: &str) {
+    term.clear_line().unwrap();
+
+    let value = match history_idx {
+        0 => command,
+        // We never let history_idx outside the bounds of the history, so this
+        // unwrap is safe.
+        idx => debugger.history_entry(idx - 1).unwrap(),
+    };
+
+    print!("> {value}");
+    io::stdout().flush().unwrap();
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum Command {
+    BreakAdd(u16),
+    BreakList,
+    BreakRemove(u16),
+    Continue,
+    Exit,
+    Help,
+    History,
+    Next,
+    Registers,
+    Step,
+}
+
+#[derive(Debug, thiserror::Error)]
+enum CommandParseError<'a> {
+    #[error("invalid command: {0}")]
+    InvalidCommand(&'a str),
+    #[error("invalid format")]
+    InvalidFormat,
+    #[error("invalid breakpoint address")]
+    InvalidBreakpointAddress,
+}
+
+impl Command {
+    fn parse<'a>(s: &'a str) -> Result<Self, CommandParseError<'a>> {
+        let tokens: Vec<_> = s.split(" ").collect();
+        match tokens[0] {
+            "break-add" if tokens.len() == 2 => {
+                let address = parse_hex_address(&tokens[1])?;
+                Ok(Command::BreakAdd(address))
+            },
+            "break-remove" if tokens.len() == 2 => {
+                let address = parse_hex_address(&tokens[1])?;
+                Ok(Command::BreakRemove(address))
+            },
+            "break-list" if tokens.len() == 1 => Ok(Command::BreakList),
+            "continue" if tokens.len() == 1 => Ok(Command::Continue),
+            "exit" if tokens.len() == 1 => Ok(Command::Exit),
+            "help" if tokens.len() == 1 => Ok(Command::Help),
+            "history" if tokens.len() == 1 => Ok(Command::History),
+            "next" if tokens.len() == 1 => Ok(Command::Next),
+            "registers" if tokens.len() == 1 => Ok(Command::Registers),
+            "step" if tokens.len() == 1 => Ok(Command::Step),
+
+            // Valid commands should be enumerated here as a fall-through case in scenarios where an
+            // invalid number of tokens are provided.
+            "break-add" | "break-remove" | "break-list" | "continue" | "exit" | "help"
+            | "history" | "next" | "registers" | "step" => Err(CommandParseError::InvalidFormat),
+
+            other => Err(CommandParseError::InvalidCommand(other)),
+        }
+    }
+}
+
+fn parse_hex_address(address: &str) -> Result<u16, CommandParseError<'_>> {
+    let address = address.strip_prefix("0x").unwrap_or(address);
+    u16::from_str_radix(address, 16).map_err(|_| CommandParseError::InvalidBreakpointAddress)
+}
+
+fn print(message: impl AsRef<str>) {
+    print_many(std::iter::once(message));
+}
+
+fn print_many<I, S>(messages: I)
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    for message in messages {
+        println!("{}", message.as_ref().trim());
+    }
+    println!();
+}
+struct CommandHistory {
+    queue: VecDeque<String>,
+    size: usize,
+}
+
+impl CommandHistory {
+    fn new(size: usize) -> Self {
+        Self { queue: VecDeque::with_capacity(size), size }
+    }
+
+    fn push(&mut self, value: impl Into<String>) {
+        let value = value.into();
+        if value == "history" || self.queue.back().map(|back| back == &value).unwrap_or(false) {
+            return;
+        }
+
+        // Pop first so we only ever need to have space for N items allocated.
+        if self.queue.len() == self.size {
+            self.queue.pop_front();
+        }
+
+        self.queue.push_back(value);
+    }
+
+    fn iter<'a>(&'a self) -> vec_deque::Iter<'a, String> {
+        self.queue.iter()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn register16_combines_8bit_registers() {
-        let mut gb = Gameboy::new();
+        let mut gb = Gameboy::no_cartridge();
 
         gb.a = 0x20;
         gb.f = 0x94;
@@ -365,5 +683,37 @@ mod test {
         gb.h = 0x0A;
         gb.l = 0xF0;
         assert_eq!(gb.register16(Register16::HL), 0x0AF0);
+    }
+
+    #[test]
+    fn parse_breakpoint_commands() {
+        assert_eq!(Command::parse("break-add 0xFFFF").unwrap(), Command::BreakAdd(0xFFFF));
+        assert_eq!(Command::parse("break-add FFFF").unwrap(), Command::BreakAdd(0xFFFF));
+        assert_eq!(Command::parse("break-add 0x0").unwrap(), Command::BreakAdd(0));
+        assert_eq!(Command::parse("break-add 0").unwrap(), Command::BreakAdd(0));
+
+        assert_eq!(Command::parse("break-remove 0xFFFF").unwrap(), Command::BreakRemove(0xFFFF));
+        assert_eq!(Command::parse("break-remove FFFF").unwrap(), Command::BreakRemove(0xFFFF));
+        assert_eq!(Command::parse("break-remove 0x0").unwrap(), Command::BreakRemove(0));
+        assert_eq!(Command::parse("break-remove 0").unwrap(), Command::BreakRemove(0));
+    }
+
+    #[test]
+    fn command_history() {
+        const SIZE: usize = 5;
+
+        let mut history = CommandHistory::new(SIZE);
+        for i in 0..SIZE + 1 {
+            history.push(format!("command-{}", i + 1));
+        }
+
+        // "history" should not be pushed
+        history.push("history");
+
+        // Repeat value should not be pushed
+        history.push("command-6");
+
+        let values: Vec<_> = history.iter().map(String::as_str).collect();
+        assert_eq!(&values, &["command-2", "command-3", "command-4", "command-5", "command-6"]);
     }
 }
