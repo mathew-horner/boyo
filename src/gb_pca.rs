@@ -495,7 +495,7 @@ Commands
     }
 }
 
-pub fn run_terminal_debugger(mut debugger: Debugger) {
+pub fn run_terminal_debugger(mut debugger: Debugger) -> ! {
     let term = Term::stdout();
     loop {
         print!("> ");
