@@ -49,7 +49,7 @@ impl Gameboy {
         }
     }
 
-    pub fn execute(mut self) {
+    pub fn execute(mut self) -> ! {
         const CYCLES_PER_FRAME: u32 = 69905;
         const REFRESH_RATE: f64 = 60.0;
 
