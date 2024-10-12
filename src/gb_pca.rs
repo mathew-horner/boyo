@@ -84,7 +84,7 @@ impl Gameboy {
                     *address = self.system.fetch() as u16;
                 },
                 3 => {
-                    *address <<= 8 & self.system.fetch();
+                    *address |= (self.system.fetch() as u16) << 8;
                 },
                 4 => {
                     self.system.pc = *address;
