@@ -10,19 +10,7 @@ const INITIAL_PC: u16 = 0x0100;
 const INITIAL_SP: u16 = 0xFFFE;
 
 pub struct Gameboy {
-    pc: u16,
-    sp: u16,
-    a: u8,
-    b: u8,
-    c: u8,
-    d: u8,
-    e: u8,
-    f: u8,
-    h: u8,
-    l: u8,
-
-    rom: Vec<u8>,
-
+    system: System,
     instruction_state: InstructionState,
 }
 
@@ -33,20 +21,7 @@ impl Gameboy {
     }
 
     pub fn new(rom: Vec<u8>) -> Self {
-        Self {
-            pc: INITIAL_PC,
-            sp: INITIAL_SP,
-            a: 0,
-            b: 0,
-            c: 0,
-            d: 0,
-            e: 0,
-            f: 0,
-            h: 0,
-            l: 0,
-            rom,
-            instruction_state: InstructionState::default(),
-        }
+        Self { system: System::new(rom), instruction_state: InstructionState::default() }
     }
 
     pub fn execute(mut self) -> ! {
@@ -67,45 +42,77 @@ impl Gameboy {
     }
 
     fn cycle(&mut self) {
-        let byte = self.rom[self.pc as usize];
-        self.pc += 1;
-
         if self.instruction_state.is_done() {
+            let byte = self.system.fetch();
             let instruction = Instruction::from_opcode(byte).expect("invalid opcode");
             self.instruction_state = InstructionState { instruction, m_cycle: 0 };
         }
 
         self.instruction_state.m_cycle += 1;
 
-        match self.instruction_state.instruction {
+        match &mut self.instruction_state.instruction {
             Instruction::Initial => unreachable!(
                 "Initial should return true for is_done and this branch should never be reached"
             ),
             Instruction::NOP => {},
             Instruction::LD_r_r { to, from } => {
                 if to != from {
-                    *self.register8_mut(to) = self.register8(from);
+                    *self.system.register8_mut(*to) = self.system.register8(*from);
                 }
             },
             Instruction::LD_r_n { to } => {
                 if self.instruction_state.m_cycle == 2 {
-                    *self.register8_mut(to) = byte;
+                    *self.system.register8_mut(*to) = self.system.fetch();
                 }
             },
             Instruction::LD_r_HL { to } => {
                 if self.instruction_state.m_cycle == 2 {
-                    let hl = self.register16(Register16::HL);
-                    *self.register8_mut(to) = self.read_memory(hl);
+                    let hl = self.system.register16(Register16::HL);
+                    *self.system.register8_mut(*to) = self.system.random_access(hl);
                 }
             },
             Instruction::LD_HL_r { from } => {
                 if self.instruction_state.m_cycle == 2 {
-                    let hl = self.register16(Register16::HL);
-                    let r = self.register8(from);
-                    self.write_memory(hl, r);
+                    let hl = self.system.register16(Register16::HL);
+                    let r = self.system.register8(*from);
+                    self.system.write_memory(hl, r);
                 }
             },
+            Instruction::JP_nn { address } => match self.instruction_state.m_cycle {
+                1 => {},
+                2 => {
+                    *address = self.system.fetch() as u16;
+                },
+                3 => {
+                    *address <<= 8 & self.system.fetch();
+                },
+                4 => {
+                    self.system.pc = *address;
+                },
+                _ => unreachable!(),
+            },
         }
+    }
+}
+
+struct System {
+    pc: u16,
+    sp: u16,
+    a: u8,
+    b: u8,
+    c: u8,
+    d: u8,
+    e: u8,
+    f: u8,
+    h: u8,
+    l: u8,
+
+    rom: Vec<u8>,
+}
+
+impl System {
+    fn new(rom: Vec<u8>) -> Self {
+        Self { pc: INITIAL_PC, sp: INITIAL_SP, a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, h: 0, l: 0, rom }
     }
 
     fn register8(&self, register: Register8) -> u8 {
@@ -144,12 +151,18 @@ impl Gameboy {
     }
 
     fn registers<'a>(&'a self) -> Registers<'a> {
-        Registers { gb: self, idx: 0 }
+        Registers { system: self, idx: 0 }
     }
 
     // TODO: Implement memory I/O.
 
-    fn read_memory(&self, address: u16) -> u8 {
+    fn fetch(&mut self) -> u8 {
+        let byte = self.rom[self.pc as usize];
+        self.pc += 1;
+        byte
+    }
+
+    fn random_access(&self, address: u16) -> u8 {
         0
     }
 
@@ -196,7 +209,7 @@ enum Register16 {
 }
 
 struct Registers<'a> {
-    gb: &'a Gameboy,
+    system: &'a System,
     idx: usize,
 }
 
@@ -205,14 +218,14 @@ impl<'a> Iterator for Registers<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let register = match self.idx {
-            0 => Register { name: "a", value: self.gb.a },
-            1 => Register { name: "b", value: self.gb.b },
-            2 => Register { name: "c", value: self.gb.c },
-            3 => Register { name: "d", value: self.gb.d },
-            4 => Register { name: "e", value: self.gb.e },
-            5 => Register { name: "f", value: self.gb.f },
-            6 => Register { name: "h", value: self.gb.h },
-            7 => Register { name: "l", value: self.gb.l },
+            0 => Register { name: "a", value: self.system.a },
+            1 => Register { name: "b", value: self.system.b },
+            2 => Register { name: "c", value: self.system.c },
+            3 => Register { name: "d", value: self.system.d },
+            4 => Register { name: "e", value: self.system.e },
+            5 => Register { name: "f", value: self.system.f },
+            6 => Register { name: "h", value: self.system.h },
+            7 => Register { name: "l", value: self.system.l },
             _ => return None,
         };
         self.idx += 1;
@@ -257,6 +270,12 @@ enum Instruction {
     /// Load to the absolute address specified by the 16-bit register `HL`, data
     /// from the 8-bit register `r`.
     LD_HL_r { from: Register8 },
+
+    /// `JP nn`
+    ///
+    /// Unconditional jump to the absolute address specified by the 16-bit
+    /// immediate operand nn.
+    JP_nn { address: u16 },
 }
 
 impl Instruction {
@@ -470,7 +489,7 @@ impl Instruction {
             0xC0 => None,
             0xC1 => None,
             0xC2 => None,
-            0xC3 => None,
+            0xC3 => Some(Instruction::JP_nn { address: 0 }),
             0xC4 => None,
             0xC5 => None,
             0xC6 => None,
@@ -542,6 +561,7 @@ impl Instruction {
             Self::Initial => 0,
             Self::NOP | Self::LD_r_r { .. } => 1,
             Self::LD_r_n { .. } | Self::LD_r_HL { .. } | Self::LD_HL_r { .. } => 2,
+            Self::JP_nn { .. } => 4,
         }
     }
 }
@@ -607,7 +627,7 @@ Commands
             Ok(Command::Next) => {
                 let mut state = self.gameboy.instruction_state.clone();
                 if state.is_done() {
-                    let byte = self.gameboy.rom[self.gameboy.pc as usize];
+                    let byte = self.gameboy.system.rom[self.gameboy.system.pc as usize];
                     let instruction = Instruction::from_opcode(byte).expect("invalid opcode");
                     state = InstructionState { instruction, m_cycle: 0 };
                 }
@@ -617,6 +637,7 @@ Commands
             Ok(Command::Registers) => {
                 print_many(
                     self.gameboy
+                        .system
                         .registers()
                         .map(|Register { name, value }| format!("{name}: {value:#X}")),
                 );
@@ -632,7 +653,7 @@ Commands
     }
 
     fn should_break(&self) -> bool {
-        self.breakpoints.contains(&self.gameboy.pc)
+        self.breakpoints.contains(&self.gameboy.system.pc)
     }
 
     fn history_entry<'a>(&'a self, idx: usize) -> Option<&'a str> {
@@ -817,21 +838,21 @@ mod test {
     fn register16_combines_8bit_registers() {
         let mut gb = Gameboy::no_cartridge();
 
-        gb.a = 0x20;
-        gb.f = 0x94;
-        assert_eq!(gb.register16(Register16::AF), 0x2094);
+        gb.system.a = 0x20;
+        gb.system.f = 0x94;
+        assert_eq!(gb.system.register16(Register16::AF), 0x2094);
 
-        gb.b = 0x42;
-        gb.c = 0x21;
-        assert_eq!(gb.register16(Register16::BC), 0x4221);
+        gb.system.b = 0x42;
+        gb.system.c = 0x21;
+        assert_eq!(gb.system.register16(Register16::BC), 0x4221);
 
-        gb.d = 0x65;
-        gb.e = 0xBC;
-        assert_eq!(gb.register16(Register16::DE), 0x65BC);
+        gb.system.d = 0x65;
+        gb.system.e = 0xBC;
+        assert_eq!(gb.system.register16(Register16::DE), 0x65BC);
 
-        gb.h = 0x0A;
-        gb.l = 0xF0;
-        assert_eq!(gb.register16(Register16::HL), 0x0AF0);
+        gb.system.h = 0x0A;
+        gb.system.l = 0xF0;
+        assert_eq!(gb.system.register16(Register16::HL), 0x0AF0);
     }
 
     #[test]
