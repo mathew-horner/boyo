@@ -21,13 +21,16 @@ struct Cli {
 }
 
 fn main() {
+    env_logger::init();
     let cli = Cli::parse();
     let rom = std::fs::read(&cli.rom_path).expect("failed to read ROM file");
     let gameboy = Gameboy::new(rom);
 
     if !cli.debug {
+        log::info!("Starting boyo in execution mode");
         gameboy.execute();
     } else {
+        log::info!("Starting boyo in terminal debug mode");
         let debugger = Debugger::new(gameboy);
         run_terminal_debugger(debugger);
     }
