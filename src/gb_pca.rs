@@ -1,6 +1,6 @@
 use std::collections::{vec_deque, VecDeque};
-use std::fmt::UpperHex;
-use std::io::{self, Write};
+use std::fmt::{UpperHex, Write as _};
+use std::io::{self, Write as _};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -95,15 +95,18 @@ impl Gameboy {
         }
     }
 
-    fn peek_instruction_state(&self) -> InstructionState {
+    // If the next cycle is to read an opcode that is unrecognized (read:
+    // unimplemented for now), then return the opcode as a byte so it can be
+    // displayed in an error message to the user without panicking.
+    fn peek_instruction_state(&self) -> Result<InstructionState, u8> {
         let mut state = self.instruction_state.clone();
         if state.is_done() {
             let byte = self.system.rom[self.system.pc as usize];
-            let instruction = Instruction::from_opcode(byte).expect("invalid opcode");
+            let instruction = Instruction::from_opcode(byte).ok_or(byte)?;
             state = InstructionState { instruction, m_cycle: 0 };
         }
         state.m_cycle += 1;
-        state
+        Ok(state)
     }
 }
 
@@ -676,8 +679,12 @@ Commands
     }
 
     fn print_next_instruction(&self, label: &str) {
-        let state = self.gameboy.peek_instruction_state();
-        print(format!("{label}: {state:?}"));
+        let mut message = format!("{label}: ");
+        match self.gameboy.peek_instruction_state() {
+            Ok(state) => write!(&mut message, "{state:?}").unwrap(),
+            Err(opcode) => write!(&mut message, "0x{opcode:02X}").unwrap(),
+        };
+        print(message)
     }
 
     fn should_break(&self) -> bool {
