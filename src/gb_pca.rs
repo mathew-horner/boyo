@@ -630,6 +630,15 @@ impl Debugger {
                     break;
                 }
             },
+            Ok(Command::ContinueUntilNotImpl) => loop {
+                match self.gameboy.peek_instruction_state() {
+                    Ok(_) => self.gameboy.cycle(),
+                    Err(opcode) => {
+                        print(format!("not impl: 0x{opcode:02X}"));
+                        break;
+                    },
+                };
+            },
             Ok(Command::Exit) => std::process::exit(0),
             Ok(Command::Help) => {
                 // This strange syntax is to make it so the raw string literal prints without a
@@ -644,6 +653,7 @@ Commands
 * break-list - Shows all the currently active breakpoints.
 * break-remove <address> - Removes an existing breakpoint at the given (hex) address, if it exists.
 * continue - Begins execution until a breakpoint is hit.
+* continue-until-not-impl - Begins execution until a non-implemented opcode is encountered.
 * exit - Exits the program.
 * help - How you got here.
 * next - Displays the next instruction to be executed.
@@ -761,6 +771,7 @@ enum Command {
     BreakList,
     BreakRemove(u16),
     Continue,
+    ContinueUntilNotImpl,
     Exit,
     Help,
     History,
@@ -793,6 +804,7 @@ impl Command {
             },
             "break-list" if tokens.len() == 1 => Ok(Command::BreakList),
             "continue" if tokens.len() == 1 => Ok(Command::Continue),
+            "continue-until-not-impl" if tokens.len() == 1 => Ok(Command::ContinueUntilNotImpl),
             "exit" if tokens.len() == 1 => Ok(Command::Exit),
             "help" if tokens.len() == 1 => Ok(Command::Help),
             "history" if tokens.len() == 1 => Ok(Command::History),
@@ -802,8 +814,17 @@ impl Command {
 
             // Valid commands should be enumerated here as a fall-through case in scenarios where an
             // invalid number of tokens are provided.
-            "break-add" | "break-remove" | "break-list" | "continue" | "exit" | "help"
-            | "history" | "next" | "registers" | "step" => Err(CommandParseError::InvalidFormat),
+            "break-add"
+            | "break-remove"
+            | "break-list"
+            | "continue"
+            | "continue-until-not-impl"
+            | "exit"
+            | "help"
+            | "history"
+            | "next"
+            | "registers"
+            | "step" => Err(CommandParseError::InvalidFormat),
 
             other => Err(CommandParseError::InvalidCommand(other)),
         }
