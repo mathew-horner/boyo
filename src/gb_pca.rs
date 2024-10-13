@@ -1,4 +1,5 @@
 use std::collections::{vec_deque, VecDeque};
+use std::fmt::UpperHex;
 use std::io::{self, Write};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -229,14 +230,16 @@ impl<'a> Iterator for Registers<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let register = match self.idx {
-            0 => Register { name: "a", value: self.system.a },
-            1 => Register { name: "b", value: self.system.b },
-            2 => Register { name: "c", value: self.system.c },
-            3 => Register { name: "d", value: self.system.d },
-            4 => Register { name: "e", value: self.system.e },
-            5 => Register { name: "f", value: self.system.f },
-            6 => Register { name: "h", value: self.system.h },
-            7 => Register { name: "l", value: self.system.l },
+            0 => Register { name: "pc", value: RegisterValue::U16(self.system.pc) },
+            1 => Register { name: "sp", value: RegisterValue::U16(self.system.sp) },
+            2 => Register { name: "a", value: RegisterValue::U8(self.system.a) },
+            3 => Register { name: "b", value: RegisterValue::U8(self.system.b) },
+            4 => Register { name: "c", value: RegisterValue::U8(self.system.c) },
+            5 => Register { name: "d", value: RegisterValue::U8(self.system.d) },
+            6 => Register { name: "e", value: RegisterValue::U8(self.system.e) },
+            7 => Register { name: "f", value: RegisterValue::U8(self.system.f) },
+            8 => Register { name: "h", value: RegisterValue::U8(self.system.h) },
+            9 => Register { name: "l", value: RegisterValue::U8(self.system.l) },
             _ => return None,
         };
         self.idx += 1;
@@ -246,7 +249,21 @@ impl<'a> Iterator for Registers<'a> {
 
 struct Register {
     name: &'static str,
-    value: u8,
+    value: RegisterValue,
+}
+
+enum RegisterValue {
+    U8(u8),
+    U16(u16),
+}
+
+impl UpperHex for RegisterValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::U8(value) => write!(f, "0x{value:02X}"),
+            Self::U16(value) => write!(f, "0x{value:04X}"),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
