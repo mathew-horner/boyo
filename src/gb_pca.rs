@@ -690,14 +690,6 @@ Commands
     fn should_break(&self) -> bool {
         self.breakpoints.contains(&self.gameboy.system.pc)
     }
-
-    fn history_entry<'a>(&'a self, idx: usize) -> Option<&'a str> {
-        self.command_history.queue.get(self.history_len() - 1 - idx).map(String::as_str)
-    }
-
-    fn history_len(&self) -> usize {
-        self.command_history.queue.len()
-    }
 }
 
 pub fn run_terminal_debugger(mut debugger: Debugger) -> ! {
@@ -722,7 +714,7 @@ pub fn run_terminal_debugger(mut debugger: Debugger) -> ! {
                     let _ = command.pop();
                     term.clear_chars(1).unwrap();
                 },
-                console::Key::ArrowUp if history_idx < debugger.history_len() => {
+                console::Key::ArrowUp if history_idx < debugger.command_history.len() => {
                     history_idx += 1;
                     update_command_display(&debugger, &term, history_idx, &command);
                 },
@@ -742,7 +734,7 @@ pub fn run_terminal_debugger(mut debugger: Debugger) -> ! {
         // TODO: Make it so we don't have to clone here...
         let command = match history_idx {
             0 => command.trim().to_owned(),
-            idx => debugger.history_entry(idx - 1).unwrap().to_owned(),
+            idx => debugger.command_history.entry(idx - 1).unwrap().to_owned(),
         };
 
         debugger.invoke_command(&command);
@@ -756,7 +748,7 @@ fn update_command_display(debugger: &Debugger, term: &Term, history_idx: usize, 
         0 => command,
         // We never let history_idx outside the bounds of the history, so this
         // unwrap is safe.
-        idx => debugger.history_entry(idx - 1).unwrap(),
+        idx => debugger.command_history.entry(idx - 1).unwrap(),
     };
 
     print!("> {value}");
@@ -862,6 +854,14 @@ impl CommandHistory {
 
     fn iter<'a>(&'a self) -> vec_deque::Iter<'a, String> {
         self.queue.iter()
+    }
+
+    fn entry<'a>(&'a self, idx: usize) -> Option<&'a str> {
+        self.queue.get(self.len() - 1 - idx).map(String::as_str)
+    }
+
+    fn len(&self) -> usize {
+        self.queue.len()
     }
 }
 
