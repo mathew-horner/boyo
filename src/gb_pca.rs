@@ -93,6 +93,17 @@ impl Gameboy {
             },
         }
     }
+
+    fn peek_instruction_state(&self) -> InstructionState {
+        let mut state = self.instruction_state.clone();
+        if state.is_done() {
+            let byte = self.system.rom[self.system.pc as usize];
+            let instruction = Instruction::from_opcode(byte).expect("invalid opcode");
+            state = InstructionState { instruction, m_cycle: 0 };
+        }
+        state.m_cycle += 1;
+        state
+    }
 }
 
 struct System {
@@ -625,13 +636,7 @@ Commands
                 print_many(self.command_history.iter());
             },
             Ok(Command::Next) => {
-                let mut state = self.gameboy.instruction_state.clone();
-                if state.is_done() {
-                    let byte = self.gameboy.system.rom[self.gameboy.system.pc as usize];
-                    let instruction = Instruction::from_opcode(byte).expect("invalid opcode");
-                    state = InstructionState { instruction, m_cycle: 0 };
-                }
-                state.m_cycle += 1;
+                let state = self.gameboy.peek_instruction_state();
                 print(format!("{state:?}"));
             },
             Ok(Command::Registers) => {
@@ -643,7 +648,9 @@ Commands
                 );
             },
             Ok(Command::Step) => {
+                let state = self.gameboy.peek_instruction_state();
                 self.gameboy.cycle();
+                print(format!("Ran: {state:?}"));
             },
             Err(error) => {
                 print(error.to_string());
