@@ -653,8 +653,7 @@ Commands
                 print_many(self.command_history.iter());
             },
             Ok(Command::Next) => {
-                let state = self.gameboy.peek_instruction_state();
-                print(format!("{state:?}"));
+                self.print_next_instruction("Next");
             },
             Ok(Command::Registers) => {
                 print_many(
@@ -665,15 +664,20 @@ Commands
                 );
             },
             Ok(Command::Step) => {
-                let state = self.gameboy.peek_instruction_state();
+                self.print_next_instruction("Exec");
                 self.gameboy.cycle();
-                print(format!("Ran: {state:?}"));
+                self.print_next_instruction("Next");
             },
             Err(error) => {
                 print(error.to_string());
             },
         }
         self.command_history.push(command.to_owned());
+    }
+
+    fn print_next_instruction(&self, label: &str) {
+        let state = self.gameboy.peek_instruction_state();
+        print(format!("{label}: {state:?}"));
     }
 
     fn should_break(&self) -> bool {
@@ -690,6 +694,7 @@ Commands
 }
 
 pub fn run_terminal_debugger(mut debugger: Debugger) -> ! {
+    debugger.print_next_instruction("Next");
     let term = Term::stdout();
     loop {
         print!("> ");
@@ -823,7 +828,6 @@ where
     for message in messages {
         println!("{}", message.as_ref().trim());
     }
-    println!();
 }
 struct CommandHistory {
     queue: VecDeque<String>,
