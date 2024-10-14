@@ -1,9 +1,12 @@
-mod gb_pca;
+mod command_history;
+mod debugger;
+mod gb;
+mod instruction;
 
 use clap::Parser;
-use gb_pca::run_terminal_debugger;
 
-use crate::gb_pca::{Debugger, Gameboy};
+use crate::debugger::{run_terminal_debugger, Debugger};
+use crate::gb::Gameboy;
 
 #[derive(Parser)]
 #[command(
