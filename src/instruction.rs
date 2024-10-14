@@ -33,6 +33,12 @@ pub enum Instruction {
     /// from the 8-bit register `r`.
     LD_HL_r { from: Register8 },
 
+    /// `LD (HL), n`
+    ///
+    /// Load to the absolute address specified by the 16-bit register HL, the
+    /// immediate data n.
+    LD_HL_n { data: u8 },
+
     /// `JP nn`
     ///
     /// Unconditional jump to the absolute address specified by the 16-bit
@@ -101,7 +107,7 @@ impl Instruction {
             0x33 => None,
             0x34 => None,
             0x35 => None,
-            0x36 => None,
+            0x36 => Some(Self::LD_HL_n { data: 0 }),
             0x37 => None,
             0x38 => None,
             0x39 => None,
@@ -323,6 +329,7 @@ impl Instruction {
             Self::Initial => 0,
             Self::NOP | Self::LD_r_r { .. } => 1,
             Self::LD_r_n { .. } | Self::LD_r_HL { .. } | Self::LD_HL_r { .. } => 2,
+            Self::LD_HL_n { .. } => 3,
             Self::JP_nn { .. } => 4,
         }
     }

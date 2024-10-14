@@ -76,6 +76,17 @@ impl Gameboy {
                     self.system.write_memory(hl, r);
                 }
             },
+            Instruction::LD_HL_n { data } => match self.instruction_state.m_cycle {
+                1 => {},
+                2 => {
+                    *data = self.system.fetch();
+                },
+                3 => {
+                    let hl = self.system.register16(Register16::HL);
+                    self.system.write_memory(hl, *data);
+                },
+                _ => unreachable!(),
+            },
             Instruction::JP_nn { address } => match self.instruction_state.m_cycle {
                 1 => {},
                 2 => {
