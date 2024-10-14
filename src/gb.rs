@@ -4,7 +4,8 @@ use std::time::{Duration, Instant};
 
 use crate::instruction::Instruction;
 
-const INITIAL_PC: u16 = 0x0100;
+pub const INITIAL_PC: u16 = 0x0100;
+
 const INITIAL_SP: u16 = 0xFFFE;
 
 pub struct Gameboy {
