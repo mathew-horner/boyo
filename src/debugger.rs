@@ -24,14 +24,14 @@ impl Debugger {
         match Command::parse(command) {
             Ok(Command::BreakAdd(address)) => {
                 self.breakpoints.insert(address);
-                print(format!("breakpoint added @ {address:#X}"));
+                println!("breakpoint added @ {address:#X}");
             },
             Ok(Command::BreakRemove(address)) => {
                 self.breakpoints.retain(|bp| *bp != address);
-                print(format!("breakpoint(s) removed @ {address:#X}"));
+                println!("breakpoint(s) removed @ {address:#X}");
             },
             Ok(Command::BreakList) => {
-                print_many(self.breakpoints.iter().map(|bp| format!("{bp:#X}")));
+                self.breakpoints.iter().for_each(|bp| println!("{bp:#X}"));
             },
             Ok(Command::Continue) => loop {
                 self.gameboy.cycle();
@@ -43,18 +43,16 @@ impl Debugger {
                 match self.gameboy.peek_instruction_state() {
                     Ok(_) => self.gameboy.cycle(),
                     Err(opcode) => {
-                        print(format!("not impl: 0x{opcode:02X}"));
+                        println!("not impl: 0x{opcode:02X}");
                         break;
                     },
                 };
             },
             Ok(Command::Exit) => std::process::exit(0),
             Ok(Command::Help) => {
-                // This strange syntax is to make it so the raw string literal prints without a
-                // leading empty line (hence the [1..]) at the end.
-                print(
-                    r#"
--------------
+                #[rustfmt::skip]
+                println!(
+r#"-------------
 Boyo Debugger
 -------------
 Commands
@@ -67,29 +65,26 @@ Commands
 * help - How you got here.
 * next - Displays the next instruction to be executed.
 * registers - Displays the contents of all cpu registers.
-* step - Executes a single instruction.
-"#,
+* step - Executes a single instruction."#
                 );
             },
             Ok(Command::History) => {
-                print_many(self.command_history.iter());
+                self.command_history.iter().for_each(|entry| println!("{entry}"));
             },
             Ok(Command::Next) => {
                 self.print_next_instruction();
             },
             Ok(Command::Registers) => {
-                print_many(
-                    self.gameboy
-                        .registers()
-                        .map(|Register { name, value }| format!("{name}: {value:#X}")),
-                );
+                self.gameboy
+                    .registers()
+                    .for_each(|Register { name, value }| println!("{name}: {value:#X}"));
             },
             Ok(Command::Step) => {
                 self.print_next_instruction();
                 self.gameboy.cycle();
             },
             Err(error) => {
-                print(error.to_string());
+                eprintln!("{error}");
             },
         }
         self.command_history.push(command.to_owned());
@@ -97,8 +92,8 @@ Commands
 
     fn print_next_instruction(&self) {
         match self.gameboy.peek_instruction_state() {
-            Ok(state) => print(format!("{state:?}")),
-            Err(opcode) => print(format!("0x{opcode:02X}")),
+            Ok(state) => println!("{state:?}"),
+            Err(opcode) => println!("0x{opcode:02X}"),
         };
     }
 
@@ -238,20 +233,6 @@ impl Command {
 fn parse_hex_address(address: &str) -> Result<u16, CommandParseError<'_>> {
     let address = address.strip_prefix("0x").unwrap_or(address);
     u16::from_str_radix(address, 16).map_err(|_| CommandParseError::InvalidBreakpointAddress)
-}
-
-fn print(message: impl AsRef<str>) {
-    print_many(std::iter::once(message));
-}
-
-fn print_many<I, S>(messages: I)
-where
-    I: Iterator<Item = S>,
-    S: AsRef<str>,
-{
-    for message in messages {
-        println!("{}", message.as_ref().trim());
-    }
 }
 
 #[cfg(test)]
