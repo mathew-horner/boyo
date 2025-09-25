@@ -1,4 +1,3 @@
-use std::fmt::Write as _;
 use std::io::{self, Write as _};
 
 use console::Term;
@@ -76,7 +75,7 @@ Commands
                 print_many(self.command_history.iter());
             },
             Ok(Command::Next) => {
-                self.print_next_instruction("Next");
+                self.print_next_instruction();
             },
             Ok(Command::Registers) => {
                 print_many(
@@ -86,9 +85,8 @@ Commands
                 );
             },
             Ok(Command::Step) => {
-                self.print_next_instruction("Exec");
+                self.print_next_instruction();
                 self.gameboy.cycle();
-                self.print_next_instruction("Next");
             },
             Err(error) => {
                 print(error.to_string());
@@ -97,13 +95,11 @@ Commands
         self.command_history.push(command.to_owned());
     }
 
-    fn print_next_instruction(&self, label: &str) {
-        let mut message = format!("{label}: ");
+    fn print_next_instruction(&self) {
         match self.gameboy.peek_instruction_state() {
-            Ok(state) => write!(&mut message, "{state:?}").unwrap(),
-            Err(opcode) => write!(&mut message, "0x{opcode:02X}").unwrap(),
+            Ok(state) => print(format!("{state:?}")),
+            Err(opcode) => print(format!("0x{opcode:02X}")),
         };
-        print(message)
     }
 
     fn should_break(&self) -> bool {
@@ -112,7 +108,6 @@ Commands
 }
 
 pub fn run_terminal_debugger(mut debugger: Debugger) -> ! {
-    debugger.print_next_instruction("Next");
     let term = Term::stdout();
     loop {
         print!("> ");
