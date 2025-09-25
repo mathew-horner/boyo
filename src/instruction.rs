@@ -48,7 +48,6 @@ pub enum Instruction {
 
 impl Instruction {
     pub fn from_opcode(opcode: u8) -> Option<Self> {
-        log::trace!("parse opcode 0x{opcode:02X}");
         match opcode {
             0x00 => Some(Self::NOP),
             0x01 => None,

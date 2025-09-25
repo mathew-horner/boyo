@@ -1,6 +1,8 @@
-use std::fmt::UpperHex;
+use std::fmt::{self, UpperHex};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+
+use log::log_enabled;
 
 use crate::instruction::Instruction;
 
@@ -32,6 +34,12 @@ impl Gameboy {
         loop {
             let start = Instant::now();
             for _ in 0..CYCLES_PER_FRAME {
+                if log_enabled!(log::Level::Trace) {
+                    match self.peek_instruction_state() {
+                        Ok(state) => log::trace!("{state}"),
+                        Err(opcode) => log::trace!("0x{opcode:02X}"),
+                    }
+                }
                 self.cycle();
             }
             // TODO: Actually draw frame.
@@ -206,6 +214,12 @@ pub struct InstructionState {
 impl Default for InstructionState {
     fn default() -> Self {
         Self { instruction: Instruction::Initial, m_cycle: 0 }
+    }
+}
+
+impl fmt::Display for InstructionState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "mc#{} | {:?} ", self.m_cycle, self.instruction)
     }
 }
 
