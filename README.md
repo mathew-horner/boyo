@@ -1,6 +1,6 @@
 # boyo - a work-in-progress emulator
 
-A cycle-accurate, efficient, and memory safe emulator for the Gameboy and (eventually) the Gameboy Advance.
+An emulator for the Gameboy and (eventually) the Gameboy Advance.
 
 ## Usage
 
@@ -10,7 +10,7 @@ You can run the emulator using the following command:
 boyo path/to/game.rom
 ```
 
-Note: boyo is **very much** work in progress. Running the emulator this way will not work very well.
+Note: boyo is **very much** work in progress. Running the emulator this way will not really work.
 
 ## Debugging
 
